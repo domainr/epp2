@@ -3,10 +3,10 @@ package epp_test
 import (
 	"testing"
 
-	"github.com/domainr/epp/internal/schema/epp"
-	"github.com/domainr/epp/internal/schema/std"
-	"github.com/domainr/epp/internal/schema/test"
-	"github.com/domainr/epp/ns"
+	"github.com/domainr/epp2/internal/schema/epp"
+	"github.com/domainr/epp2/internal/schema/std"
+	"github.com/domainr/epp2/internal/schema/test"
+	"github.com/domainr/epp2/ns"
 )
 
 func TestLoginRoundTrip(t *testing.T) {

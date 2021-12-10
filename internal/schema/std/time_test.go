@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/domainr/epp/internal/schema/test"
+	"github.com/domainr/epp2/internal/schema/test"
 )
 
 func TestTime(t *testing.T) {

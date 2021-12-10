@@ -3,7 +3,7 @@ package epp
 import (
 	"context"
 
-	"github.com/domainr/epp/internal/schema/epp"
+	"github.com/domainr/epp2/internal/schema/epp"
 )
 
 type transaction struct {

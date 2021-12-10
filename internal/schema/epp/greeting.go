@@ -1,7 +1,7 @@
 package epp
 
 import (
-	"github.com/domainr/epp/internal/schema/std"
+	"github.com/domainr/epp2/internal/schema/std"
 	"github.com/nbio/xml"
 )
 

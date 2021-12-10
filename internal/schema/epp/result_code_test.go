@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/domainr/epp/internal/schema/epp"
+	"github.com/domainr/epp2/internal/schema/epp"
 )
 
 func TestResultCodeMessage(t *testing.T) {

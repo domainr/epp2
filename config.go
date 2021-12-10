@@ -1,7 +1,7 @@
 package epp
 
 import (
-	"github.com/domainr/epp/internal/schema/epp"
+	"github.com/domainr/epp2/internal/schema/epp"
 )
 
 // Config describes an EPP client or server configuration, including

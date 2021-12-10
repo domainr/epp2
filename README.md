@@ -1,6 +1,6 @@
 # EPP for Go
 
-[![build status](https://img.shields.io/github/workflow/status/domainr/epp2/Go.svg)](https://github.com/domainr/epp/actions)
+[![build status](https://img.shields.io/github/workflow/status/domainr/epp2/Go.svg)](https://github.com/domainr/epp2/actions)
 [![pkg.go.dev](https://img.shields.io/badge/docs-pkg.go.dev-blue.svg)](https://pkg.go.dev/github.com/domainr/epp2)
 
 Extensible Provisioning Protocol (EPP) for

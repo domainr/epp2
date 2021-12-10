@@ -3,12 +3,12 @@ package epp_test
 import (
 	"testing"
 
-	"github.com/domainr/epp/internal/schema/contact"
-	"github.com/domainr/epp/internal/schema/domain"
-	"github.com/domainr/epp/internal/schema/epp"
-	"github.com/domainr/epp/internal/schema/host"
-	"github.com/domainr/epp/internal/schema/std"
-	"github.com/domainr/epp/internal/schema/test"
+	"github.com/domainr/epp2/internal/schema/contact"
+	"github.com/domainr/epp2/internal/schema/domain"
+	"github.com/domainr/epp2/internal/schema/epp"
+	"github.com/domainr/epp2/internal/schema/host"
+	"github.com/domainr/epp2/internal/schema/std"
+	"github.com/domainr/epp2/internal/schema/test"
 )
 
 func TestGreetingRoundTrip(t *testing.T) {
