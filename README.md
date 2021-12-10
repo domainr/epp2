@@ -1,22 +1,14 @@
 # EPP for Go
 
-[![build status](https://img.shields.io/github/workflow/status/domainr/epp/Go.svg)](https://github.com/domainr/epp/actions)
-[![pkg.go.dev](https://img.shields.io/badge/docs-pkg.go.dev-blue.svg)](https://pkg.go.dev/github.com/domainr/epp)
+[![build status](https://img.shields.io/github/workflow/status/domainr/epp2/Go.svg)](https://github.com/domainr/epp/actions)
+[![pkg.go.dev](https://img.shields.io/badge/docs-pkg.go.dev-blue.svg)](https://pkg.go.dev/github.com/domainr/epp2)
 
-EPP ([Extensible Provisioning Protocol](https://tools.ietf.org/html/rfc5730)) client for
-[Go](https://golang.org/). Extracted from and in production use at [Domainr](https://domainr.com/).
+Extensible Provisioning Protocol (EPP) for
+[Go](https://go.dev/).
 
-**Note:** This library is currently under development. Its API is subject to breaking changes at any time.
+[EPP](https://tools.ietf.org/html/rfc5730) is an XML-based protocol for provisioning and managing domain names and other objects at domain name registries. The underlying transport is usually TLS, secured with password authentication, IP allow lists, and client certificates.
 
-## Installation
-
-`go get github.com/domainr/epp`
-
-## Usage
-
-```go
-// TODO: document new API
-```
+**Note:** This is a fork of [domainr/epp](https://github.com/domainr/epp) to develop and test the next version of its API. You should probably use it instead.
 
 ## Author
 
