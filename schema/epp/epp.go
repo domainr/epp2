@@ -1,6 +1,7 @@
 package epp
 
 import (
+	"github.com/domainr/epp2/schema"
 	"github.com/nbio/xml"
 )
 
@@ -11,28 +12,42 @@ type EPP struct {
 
 	// Body is any valid EPP child element.
 	Body Body
+
+	// Factory is used when decoding to map an xml.Name to a Go type,
+	// used for EPP extensions. It is not used for encoding.
+	// If nil, a default mapping will be used.
+	Factory schema.Factory `xml:"-"`
 }
 
 func (e *EPP) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
-	var v struct {
-		Hello    *Hello    `xml:"hello"`
-		Greeting *Greeting `xml:"greeting"`
-		Command  *Command  `xml:"command"`
-		Response *Response `xml:"response"`
+	var f schema.Factory = schema.FactoryFunc(eppFactory)
+	if e.Factory != nil {
+		f = schema.Factories{e.Factory, f}
 	}
-	err := d.DecodeElement(&v, &start)
-	if err != nil {
+	return schema.WithFactory(d, f, func(d *xml.Decoder) error {
+		elements, err := schema.DecodeChildren(d, &start)
+		if len(elements) > 0 {
+			if body, ok := elements[0].(Body); ok {
+				e.Body = body
+			}
+		}
 		return err
+	})
+}
+
+func eppFactory(name xml.Name) interface{} {
+	if name.Space != NS {
+		return nil
 	}
-	switch {
-	case v.Hello != nil:
-		e.Body = v.Hello
-	case v.Greeting != nil:
-		e.Body = v.Greeting
-	case v.Command != nil:
-		e.Body = v.Command
-	case v.Response != nil:
-		e.Body = v.Response
+	switch name.Local {
+	case "hello":
+		return &Hello{}
+	case "greeting":
+		return &Greeting{}
+	case "command":
+		return &Command{}
+	case "response":
+		return &Response{}
 	}
 	return nil
 }
