@@ -21,8 +21,8 @@ type Transport interface {
 	// It blocks until a response is received, ctx is canceled, or
 	// the underlying connection is closed.
 	//
-	// The EPP command must have a valid, unique transaction ID to correlate
-	// it with a response.
+	// To correlate it with a response, cmd must have a valid, unique
+	// transaction ID.
 	// TODO: should it assign a transaction ID if empty?
 	Command(ctx context.Context, cmd *epp.Command) (*epp.Response, error)
 
@@ -212,9 +212,8 @@ func (c *transport) writeDataUnit(p []byte) error {
 	return c.conn.WriteDataUnit(p)
 }
 
-// readLoop reads EPP messages from c.t and sends them to c.responses.
-// It closes c.responses before returning.
-// I/O errors are considered fatal and are returned.
+// readLoop reads EPP messages from c.t and dispatches them to an awaiting
+// transaction. I/O errors are considered fatal and are returned.
 func (c *transport) readLoop() {
 	var err error
 	defer func() {
