@@ -3,6 +3,7 @@ package schema
 import (
 	"io"
 
+	"github.com/domainr/epp2/schema/raw"
 	"github.com/nbio/xml"
 )
 
@@ -64,6 +65,9 @@ type factoryReader struct {
 	io.Reader
 }
 
+var _ io.Reader = &factoryReader{}
+var _ Factory = &factoryReader{}
+
 // New implements the Factory interface.
 func (r *factoryReader) New(name xml.Name) interface{} {
 	v := r.Factory.New(name)
@@ -85,7 +89,7 @@ func GetFactory(d *xml.Decoder) Factory {
 	if d.CharsetReader == nil {
 		return nil
 	}
-	err, r := d.CharsetReader("", nil)
+	r, err := d.CharsetReader("", nil)
 	if err != nil {
 		return nil
 	}
@@ -93,4 +97,43 @@ func GetFactory(d *xml.Decoder) Factory {
 		return f
 	}
 	return nil
+}
+
+// DecodeElement attempts to decode start using a Factory associated with d.
+// Unrecognized tag names will be decoded into a raw.XML struct.
+func DecodeElement(d *xml.Decoder, start *xml.StartElement) (interface{}, error) {
+	var v interface{}
+	f := GetFactory(d)
+	if f != nil {
+		v = f.New(start.Name)
+	}
+	if v == nil {
+		v = &raw.XML{}
+	}
+	err := d.DecodeElement(v, start)
+	return v, err
+}
+
+// DecodeChildren attempts to decode the immediate child elements of start using
+// a Factory associated with d. Unrecognized tag names will be decoded into a
+// raw.XML struct.
+func DecodeChildren(d *xml.Decoder, start *xml.StartElement) ([]interface{}, error) {
+	var values []interface{}
+	for {
+		tok, err := d.Token()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return values, err
+		}
+		if start, ok := tok.(xml.StartElement); ok {
+			v, err := DecodeElement(d, &start)
+			if err != nil {
+				return values, err
+			}
+			values = append(values, v)
+		}
+	}
+	return values, nil
 }
