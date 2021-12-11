@@ -47,10 +47,36 @@ func (factories Factories) New(name xml.Name) interface{} {
 // with types unknown to a parent package.
 func WithFactory(d *xml.Decoder, f Factory, cb func(*xml.Decoder) error) error {
 	saved := d.CharsetReader
-	d.CharsetReader = (&crowbar{d.CharsetReader, f}).CharsetReader
+	d.CharsetReader = func(charset string, r io.Reader) (io.Reader, error) {
+		var err error
+		if saved != nil && r != nil {
+			r, err = saved(charset, r)
+		}
+		return &factoryReader{f, r}, err
+	}
 	err := cb(d)
 	d.CharsetReader = saved
 	return err
+}
+
+type factoryReader struct {
+	Factory
+	io.Reader
+}
+
+// New implements the Factory interface.
+func (r *factoryReader) New(name xml.Name) interface{} {
+	v := r.Factory.New(name)
+	if v != nil {
+		return v
+	}
+
+	// If r.Reader also implements Factory (which means it’s probably a
+	// factoryReader), call it.
+	if f, ok := r.Reader.(Factory); ok {
+		return f.New(name)
+	}
+	return nil
 }
 
 // GetFactory accesses a Factory associated with xml.Decoder d. If d does not
@@ -65,43 +91,6 @@ func GetFactory(d *xml.Decoder) Factory {
 	}
 	if f, ok := r.(Factory); ok {
 		return f
-	}
-	return nil
-}
-
-type crowbar struct {
-	cr func(charset string, input io.Reader) (io.Reader, error)
-	f  Factory
-}
-
-// CharsetReader, if called with a nil io.Reader, will bypass the underlying
-// CharsetReader func and return a factoryReader.
-func (c *crowbar) CharsetReader(charset string, r io.Reader) (io.Reader, error) {
-	var err error
-	if c.cr != nil && r != nil {
-		r, err = c.cr(charset, r)
-	}
-	return &factoryReader{
-		Reader:  r,
-		Factory: c.f,
-	}, err
-}
-
-type factoryReader struct {
-	Factory
-	io.Reader
-}
-
-func (r *factoryReader) New(name xml.Name) interface{} {
-	v := r.Factory.New(name)
-	if v != nil {
-		return v
-	}
-
-	// If r.Reader also implements Factory (which means it’s probably a
-	// factoryReader), call it.
-	if f, ok := r.Reader.(Factory); ok {
-		return f.New(name)
 	}
 	return nil
 }
