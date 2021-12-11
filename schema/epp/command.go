@@ -17,6 +17,8 @@ func (Command) eppBody() {}
 
 // UnmarshalXML implements the xml.Unmarshaler interface.
 // It maps known EPP commands to their corresponding Go type.
+// It requires an xml.Decoder with an associated schema.Factory to
+// property decode EPP <command> sub-elements.
 func (c *Command) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 	type T Command
 	var v struct {
@@ -42,41 +44,12 @@ type commandWrapper struct {
 	Command CommandType
 }
 
+// UnmarshalXML requires an xml.Decoder with an associated schema.Factory to
+// property decode EPP <command> sub-elements.
 func (c *commandWrapper) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
-	return schema.WithFactory(d, commandTypes, func(d *xml.Decoder) error {
-		e, err := schema.DecodeElement(d, &start)
-		if ct, ok := e.(CommandType); ok {
-			c.Command = ct
-		}
-		return err
-	})
+	e, err := schema.DecodeElement(d, &start)
+	if ct, ok := e.(CommandType); ok {
+		c.Command = ct
+	}
+	return err
 }
-
-var commandTypes = schema.FactoryFunc(func(name xml.Name) interface{} {
-	if name.Space != NS {
-		return nil
-	}
-	switch name.Local {
-	case "check":
-		return &Check{}
-	case "create":
-		return &Create{}
-	case "delete":
-		return &Delete{}
-	case "info":
-		return &Info{}
-	case "login":
-		return &Login{}
-	case "logout":
-		return &Logout{}
-	case "poll":
-		return &Poll{}
-	case "renew":
-		return &Renew{}
-	case "transfer":
-		return &Transfer{}
-	case "update":
-		return &Update{}
-	}
-	return nil
-})

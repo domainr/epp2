@@ -20,8 +20,8 @@ type EPP struct {
 }
 
 func (e *EPP) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
-	return schema.WithFactory(d, e.Factory, func(d *xml.Decoder) error {
-		return schema.WithFactory(d, bodyTypes, func(d *xml.Decoder) error {
+	return schema.UseFactory(d, e.Factory, func(d *xml.Decoder) error {
+		return schema.UseFactory(d, Factory(), func(d *xml.Decoder) error {
 			elements, err := schema.DecodeChildren(d, &start)
 			if len(elements) > 0 {
 				if body, ok := elements[0].(Body); ok {
@@ -38,20 +38,3 @@ func (e *EPP) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 type Body interface {
 	eppBody()
 }
-
-var bodyTypes = schema.FactoryFunc(func(name xml.Name) interface{} {
-	if name.Space != NS {
-		return nil
-	}
-	switch name.Local {
-	case "hello":
-		return &Hello{}
-	case "greeting":
-		return &Greeting{}
-	case "command":
-		return &Command{}
-	case "response":
-		return &Response{}
-	}
-	return nil
-})

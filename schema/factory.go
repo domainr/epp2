@@ -1,6 +1,7 @@
 package schema
 
 import (
+	"bytes"
 	"io"
 
 	"github.com/domainr/epp2/schema/raw"
@@ -41,13 +42,18 @@ func (factories Factories) New(name xml.Name) interface{} {
 	return nil
 }
 
-// WithFactory associates a Factory f with xml.Decoder d. The Factory can be
-// retrieved from the Decoder using GetFactory(d). This allows decoding of
-// deeply-nested XML structures that are extended with types unknown to a parent
-// package. If f is nil, cb will be called with an unmodified xml.Decoder.
-func WithFactory(d *xml.Decoder, f Factory, cb func(*xml.Decoder) error) error {
+// WithFactory associates a Factory f with xml.Decoder d by overriding the
+// CharsetReader field with a special value that returns the Factory. If
+// CharsetReader is not nil, the function will be wrapped.
+//
+// The Factory can be retrieved from the Decoder using GetFactory(d). This
+// allows decoding of deeply-nested XML structures that are extended with types
+// unknown to a parent package.
+//
+// If f is nil, d will not be modified.
+func WithFactory(d *xml.Decoder, f Factory) *xml.Decoder {
 	if f == nil {
-		return cb(d)
+		return d
 	}
 	saved := d.CharsetReader
 	d.CharsetReader = func(charset string, r io.Reader) (io.Reader, error) {
@@ -57,6 +63,32 @@ func WithFactory(d *xml.Decoder, f Factory, cb func(*xml.Decoder) error) error {
 		}
 		return &factoryReader{f, r}, err
 	}
+	return d
+}
+
+// GetFactory accesses a Factory associated with xml.Decoder d. If d does not
+// have an associated Factory, it will return nil.
+func GetFactory(d *xml.Decoder) Factory {
+	if d.CharsetReader == nil {
+		return nil
+	}
+	r, err := d.CharsetReader("", nil)
+	if err != nil {
+		return nil
+	}
+	if f, ok := r.(Factory); ok {
+		return f
+	}
+	return nil
+}
+
+// UseFactory associates a Factory f with xml.Decoder d and calls cb with the
+// modified Decoder. It restores the Decoder before returning.
+//
+// If f is nil, cb will be called with an unmodified xml.Decoder.
+func UseFactory(d *xml.Decoder, f Factory, cb func(*xml.Decoder) error) error {
+	saved := d.CharsetReader
+	d = WithFactory(d, f)
 	err := cb(d)
 	d.CharsetReader = saved
 	return err
@@ -85,20 +117,9 @@ func (r *factoryReader) New(name xml.Name) interface{} {
 	return nil
 }
 
-// GetFactory accesses a Factory associated with xml.Decoder d. If d does not
-// have an associated Factory, it will return nil.
-func GetFactory(d *xml.Decoder) Factory {
-	if d.CharsetReader == nil {
-		return nil
-	}
-	r, err := d.CharsetReader("", nil)
-	if err != nil {
-		return nil
-	}
-	if f, ok := r.(Factory); ok {
-		return f
-	}
-	return nil
+// Unmarshal attempts to decode p into v using Factory f.
+func Unmarshal(p []byte, v interface{}, f Factory) error {
+	return WithFactory(xml.NewDecoder(bytes.NewReader(p)), f).Decode(v)
 }
 
 // DecodeElement attempts to decode start using a Factory associated with d.
