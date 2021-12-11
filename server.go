@@ -3,7 +3,7 @@ package epp
 import (
 	"context"
 
-	"github.com/domainr/epp2/internal/schema/epp"
+	"github.com/domainr/epp2/schema/epp"
 )
 
 // Server is an EPP version 1.0 server.

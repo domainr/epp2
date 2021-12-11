@@ -1,11 +1,11 @@
 package ns
 
 import (
-	"github.com/domainr/epp2/internal/schema/common"
-	"github.com/domainr/epp2/internal/schema/contact"
-	"github.com/domainr/epp2/internal/schema/domain"
-	"github.com/domainr/epp2/internal/schema/epp"
-	"github.com/domainr/epp2/internal/schema/host"
+	"github.com/domainr/epp2/schema/common"
+	"github.com/domainr/epp2/schema/contact"
+	"github.com/domainr/epp2/schema/domain"
+	"github.com/domainr/epp2/schema/epp"
+	"github.com/domainr/epp2/schema/host"
 )
 
 const (

@@ -3,8 +3,8 @@ package epp_test
 import (
 	"testing"
 
-	"github.com/domainr/epp2/internal/schema/epp"
-	"github.com/domainr/epp2/internal/schema/test"
+	"github.com/domainr/epp2/schema/epp"
+	"github.com/domainr/epp2/schema/test"
 )
 
 func TestEPPRoundTrip(t *testing.T) {

@@ -9,7 +9,7 @@ import (
 
 	"github.com/nbio/xml"
 
-	"github.com/domainr/epp2/internal/schema/epp"
+	"github.com/domainr/epp2/schema/epp"
 )
 
 // Transport is a low-level client for the Extensible Provisioning Protocol (EPP)

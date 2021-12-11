@@ -3,7 +3,7 @@ package std
 import (
 	"testing"
 
-	"github.com/domainr/epp2/internal/schema/test"
+	"github.com/domainr/epp2/schema/test"
 )
 
 func TestBool(t *testing.T) {
