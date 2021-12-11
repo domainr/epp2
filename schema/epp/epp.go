@@ -12,24 +12,17 @@ type EPP struct {
 
 	// Body is any valid EPP child element.
 	Body Body
-
-	// Factory is used when decoding to map an xml.Name to a Go type,
-	// used for EPP extensions. It is not used for encoding.
-	// If nil, a default mapping will be used.
-	Factory schema.Factory `xml:"-"`
 }
 
 func (e *EPP) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
-	return schema.UseFactory(d, e.Factory, func(d *xml.Decoder) error {
-		return schema.UseFactory(d, Factory(), func(d *xml.Decoder) error {
-			elements, err := schema.DecodeChildren(d, &start)
-			if len(elements) > 0 {
-				if body, ok := elements[0].(Body); ok {
-					e.Body = body
-				}
+	return schema.UseFactory(d, Factory(), func(d *xml.Decoder) error {
+		elements, err := schema.DecodeChildren(d, &start)
+		if len(elements) > 0 {
+			if body, ok := elements[0].(Body); ok {
+				e.Body = body
 			}
-			return err
-		})
+		}
+		return err
 	})
 }
 
