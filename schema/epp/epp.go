@@ -20,7 +20,7 @@ type EPP struct {
 }
 
 func (e *EPP) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
-	var f schema.Factory = schema.FactoryFunc(eppFactory)
+	var f schema.Factory = factory
 	if e.Factory != nil {
 		f = schema.Factories{e.Factory, f}
 	}
@@ -33,23 +33,6 @@ func (e *EPP) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 		}
 		return err
 	})
-}
-
-func eppFactory(name xml.Name) interface{} {
-	if name.Space != NS {
-		return nil
-	}
-	switch name.Local {
-	case "hello":
-		return &Hello{}
-	case "greeting":
-		return &Greeting{}
-	case "command":
-		return &Command{}
-	case "response":
-		return &Response{}
-	}
-	return nil
 }
 
 // Body represents a valid EPP body element:
