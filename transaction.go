@@ -15,7 +15,7 @@ func newTransaction(ctx context.Context) (transaction, context.CancelFunc) {
 	ctx, cancel := context.WithCancel(ctx)
 	return transaction{
 		ctx:   ctx,
-		reply: make(chan reply),
+		reply: make(chan reply, 1), // 1-buffered to not block
 	}, cancel
 }
 

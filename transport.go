@@ -3,7 +3,6 @@ package epp
 import (
 	"context"
 	"fmt"
-	"net"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -39,11 +38,8 @@ type Transport interface {
 	// Close closes the connection.
 	Close() error
 }
-
 type transport struct {
-	// mWrite protects writes on t.
-	mWrite sync.Mutex
-	conn   Conn
+	conn Conn
 
 	// greeting stores the most recently received <greeting> from the server.
 	greeting atomic.Value
@@ -64,7 +60,8 @@ type transport struct {
 // NewTransport returns a new Transport using conn.
 func NewTransport(conn Conn) Transport {
 	t := newTransport(conn)
-	go t.readLoop()
+	// Read the initial <greeting> from the server.
+	go t.readEPP()
 	return t
 }
 
@@ -77,15 +74,15 @@ func newTransport(conn Conn) *transport {
 	}
 }
 
-// Close closes the connection.
+// Close closes the connection and cancels any pending commands.
 func (c *transport) Close() error {
-	select {
-	case <-c.done:
-		return net.ErrClosed
-	default:
-		close(c.done)
+	err := c.conn.Close()
+	cerr := err
+	if cerr == nil {
+		cerr = ErrClosedConnection
 	}
-	return c.conn.Close()
+	c.cleanup(cerr)
+	return err
 }
 
 // ServerConfig returns the server configuration described in a <greeting> message.
@@ -138,9 +135,12 @@ func (c *transport) Command(ctx context.Context, cmd *epp.Command) (*epp.Respons
 		return nil, err
 	}
 
+	err = c.readEPP()
+	if err != nil {
+		return nil, err
+	}
+
 	select {
-	case <-c.done:
-		return nil, ErrClosedConnection
 	case <-ctx.Done():
 		return nil, ctx.Err()
 	case reply := <-tx.reply:
@@ -163,9 +163,12 @@ func (c *transport) Hello(ctx context.Context) (*epp.Greeting, error) {
 		return nil, err
 	}
 
+	err = c.readEPP()
+	if err != nil {
+		return nil, err
+	}
+
 	select {
-	case <-c.done:
-		return nil, ErrClosedConnection
 	case <-ctx.Done():
 		return nil, ctx.Err()
 	case reply := <-tx.reply:
@@ -185,8 +188,6 @@ func (c *transport) Greeting(ctx context.Context) (*epp.Greeting, error) {
 		return g.(*epp.Greeting), nil
 	}
 	select {
-	case <-c.done:
-		return nil, ErrClosedConnection
 	case <-ctx.Done():
 		return nil, ctx.Err()
 	case <-c.hasGreeting:
@@ -207,49 +208,25 @@ func (c *transport) writeEPP(body epp.Body) error {
 // writeDataUnit writes a single EPP data unit to the underlying Transport.
 // Writes are synchronized, so it is safe to call this from multiple goroutines.
 func (c *transport) writeDataUnit(p []byte) error {
-	c.mWrite.Lock()
-	defer c.mWrite.Unlock()
 	return c.conn.WriteDataUnit(p)
 }
 
-// readLoop reads EPP messages from c.t and dispatches them to an awaiting
-// transaction. I/O errors are considered fatal and are returned.
-func (c *transport) readLoop() {
-	var err error
-	defer func() {
-		c.cleanup(err)
-	}()
-	for {
-		select {
-		case <-c.done:
-			return
-		default:
-		}
-
-		var p []byte
-		p, err = c.conn.ReadDataUnit()
-		if err != nil {
-			// TODO: log I/O errors.
-			return
-		}
-
-		err = c.handleDataUnit(p)
-		if err != nil {
-			// TODO: log XML and processing errors.
-		}
+// readEPP reads a single EPP data unit from c.t and dispatches it to an
+// awaiting transaction.
+func (c *transport) readEPP() error {
+	p, err := c.conn.ReadDataUnit()
+	if err != nil {
+		return err
 	}
+	return c.handleDataUnit(p)
 }
 
 func (c *transport) handleDataUnit(p []byte) error {
 	var e epp.EPP
 	err := xml.Unmarshal(p, &e)
 	if err != nil {
-		// TODO: log XML parsing errors.
-		// TODO: should XML parsing errors be considered fatal?
 		return err
 	}
-
-	// TODO: log processing errors.
 	return c.handleReply(e.Body)
 }
 
@@ -267,7 +244,7 @@ func (c *transport) handleReply(body epp.Body) error {
 			// TODO: keep abandoned transactions around for some period of time.
 			return TransactionIDError(id)
 		}
-		err := c.finalize(t, body, nil)
+		err := c.replyTo(t, body, nil)
 		if err != nil {
 			return err
 		}
@@ -286,7 +263,7 @@ func (c *transport) handleReply(body epp.Body) error {
 		// Pass the <greeting> to a caller waiting on it.
 		t, ok := c.popHello()
 		if ok {
-			err := c.finalize(t, body, nil)
+			err := c.replyTo(t, body, nil)
 			if err != nil {
 				return err
 			}
@@ -302,10 +279,8 @@ func (c *transport) handleReply(body epp.Body) error {
 	return nil
 }
 
-func (c *transport) finalize(t transaction, body epp.Body, err error) error {
+func (c *transport) replyTo(t transaction, body epp.Body, err error) error {
 	select {
-	case <-c.done:
-		return ErrClosedConnection
 	case <-t.ctx.Done():
 		return t.ctx.Err()
 	case t.reply <- reply{body: body, err: err}:
@@ -357,13 +332,15 @@ func (c *transport) popCommand(id string) (transaction, bool) {
 
 // cleanup cleans up and responds to all in-flight <hello> and <command> transactions.
 // Each transaction will be finalized with err, which may be nil.
+//
+// TODO: clean up stale or abandoned transactions on a regular basis?
 func (c *transport) cleanup(err error) {
 	c.mHellos.Lock()
 	hellos := c.hellos
 	c.hellos = nil
 	c.mHellos.Unlock()
 	for _, tx := range hellos {
-		c.finalize(tx, nil, err)
+		c.replyTo(tx, nil, err)
 	}
 
 	c.mCommands.Lock()
@@ -371,6 +348,6 @@ func (c *transport) cleanup(err error) {
 	c.commands = nil
 	c.mCommands.Unlock()
 	for _, tx := range commands {
-		c.finalize(tx, nil, err)
+		c.replyTo(tx, nil, err)
 	}
 }
