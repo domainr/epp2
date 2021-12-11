@@ -1,6 +1,7 @@
 package epp
 
 import (
+	"github.com/domainr/epp2/schema"
 	"github.com/nbio/xml"
 )
 
@@ -19,45 +20,15 @@ func (Command) eppBody() {}
 func (c *Command) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 	type T Command
 	var v struct {
-		Check    *Check    `xml:"check"`
-		Create   *Create   `xml:"create"`
-		Delete   *Delete   `xml:"delete"`
-		Info     *Info     `xml:"info"`
-		Login    *Login    `xml:"login"`
-		Logout   *Logout   `xml:"logout"`
-		Poll     *Poll     `xml:"poll"`
-		Renew    *Renew    `xml:"renew"`
-		Transfer *Transfer `xml:"transfer"`
-		Update   *Update   `xml:"update"`
 		*T
+		Command commandWrapper `xml:",any"`
 	}
 	v.T = (*T)(c)
 	err := d.DecodeElement(&v, &start)
 	if err != nil {
 		return err
 	}
-	switch {
-	case v.Check != nil:
-		c.Command = v.Check
-	case v.Create != nil:
-		c.Command = v.Create
-	case v.Delete != nil:
-		c.Command = v.Delete
-	case v.Info != nil:
-		c.Command = v.Info
-	case v.Login != nil:
-		c.Command = v.Login
-	case v.Logout != nil:
-		c.Command = v.Logout
-	case v.Poll != nil:
-		c.Command = v.Poll
-	case v.Renew != nil:
-		c.Command = v.Renew
-	case v.Transfer != nil:
-		c.Command = v.Transfer
-	case v.Update != nil:
-		c.Command = v.Update
-	}
+	c.Command = v.Command.Command
 	return nil
 }
 
@@ -66,3 +37,46 @@ func (c *Command) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 type CommandType interface {
 	eppCommand()
 }
+
+type commandWrapper struct {
+	Command CommandType
+}
+
+func (c *commandWrapper) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
+	return schema.WithFactory(d, commandTypes, func(d *xml.Decoder) error {
+		e, err := schema.DecodeElement(d, &start)
+		if ct, ok := e.(CommandType); ok {
+			c.Command = ct
+		}
+		return err
+	})
+}
+
+var commandTypes = schema.FactoryFunc(func(name xml.Name) interface{} {
+	if name.Space != NS {
+		return nil
+	}
+	switch name.Local {
+	case "check":
+		return &Check{}
+	case "create":
+		return &Create{}
+	case "delete":
+		return &Delete{}
+	case "info":
+		return &Info{}
+	case "login":
+		return &Login{}
+	case "logout":
+		return &Logout{}
+	case "poll":
+		return &Poll{}
+	case "renew":
+		return &Renew{}
+	case "transfer":
+		return &Transfer{}
+	case "update":
+		return &Update{}
+	}
+	return nil
+})
