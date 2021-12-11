@@ -42,11 +42,13 @@ func (factories Factories) New(name xml.Name) interface{} {
 }
 
 // WithFactory associates a Factory f with xml.Decoder d. The Factory can be
-// retrieved from the Decoder using GetFactory(d).
-//
-// WithFactory allows decoding of deeply-nested XML structures that are extended
-// with types unknown to a parent package.
+// retrieved from the Decoder using GetFactory(d). This allows decoding of
+// deeply-nested XML structures that are extended with types unknown to a parent
+// package. If f is nil, cb will be called with an unmodified xml.Decoder.
 func WithFactory(d *xml.Decoder, f Factory, cb func(*xml.Decoder) error) error {
+	if f == nil {
+		return cb(d)
+	}
 	saved := d.CharsetReader
 	d.CharsetReader = func(charset string, r io.Reader) (io.Reader, error) {
 		var err error
@@ -103,9 +105,11 @@ func GetFactory(d *xml.Decoder) Factory {
 // Unrecognized tag names will be decoded into a raw.XML struct.
 func DecodeElement(d *xml.Decoder, start *xml.StartElement) (interface{}, error) {
 	var v interface{}
-	f := GetFactory(d)
-	if f != nil {
-		v = f.New(start.Name)
+	if start != nil {
+		f := GetFactory(d)
+		if f != nil {
+			v = f.New(start.Name)
+		}
 	}
 	if v == nil {
 		v = &raw.XML{}

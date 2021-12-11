@@ -20,18 +20,16 @@ type EPP struct {
 }
 
 func (e *EPP) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
-	var f schema.Factory = factory
-	if e.Factory != nil {
-		f = schema.Factories{e.Factory, f}
-	}
-	return schema.WithFactory(d, f, func(d *xml.Decoder) error {
-		elements, err := schema.DecodeChildren(d, &start)
-		if len(elements) > 0 {
-			if body, ok := elements[0].(Body); ok {
-				e.Body = body
+	return schema.WithFactory(d, e.Factory, func(d *xml.Decoder) error {
+		return schema.WithFactory(d, factory, func(d *xml.Decoder) error {
+			elements, err := schema.DecodeChildren(d, &start)
+			if len(elements) > 0 {
+				if body, ok := elements[0].(Body); ok {
+					e.Body = body
+				}
 			}
-		}
-		return err
+			return err
+		})
 	})
 }
 
