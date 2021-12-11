@@ -8,7 +8,7 @@ import (
 // See https://www.rfc-editor.org/rfc/rfc5730.html#section-2.5.
 type Command struct {
 	XMLName             struct{} `xml:"urn:ietf:params:xml:ns:epp-1.0 command"`
-	Command             command
+	Command             CommandType
 	ClientTransactionID string `xml:"clTRID,omitempty"`
 }
 
@@ -61,8 +61,8 @@ func (c *Command) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 	return nil
 }
 
-// command is a child element of EPP <command>.
-// Concrete command types implement this interface.
-type command interface {
+// CommandType is a child element of EPP <Command>.
+// Concrete CommandType types implement this interface.
+type CommandType interface {
 	eppCommand()
 }

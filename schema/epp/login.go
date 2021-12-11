@@ -9,7 +9,6 @@ type Login struct {
 	NewPassword *string  `xml:"newPW"`
 	Options     Options  `xml:"options"`
 	Services    Services `xml:"svcs"`
-	command
 }
 
 func (Login) eppCommand() {}
