@@ -9,7 +9,7 @@ import (
 // See https://www.rfc-editor.org/rfc/rfc5730.html#section-2.9.2.1.
 type Check struct {
 	XMLName struct{} `xml:"urn:ietf:params:xml:ns:epp-1.0 check"`
-	Check   check
+	Check   CheckType
 }
 
 func (Check) eppCommand() {}
@@ -35,6 +35,8 @@ func (c *Check) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 	return nil
 }
 
-type check interface {
+// CheckType is a child element of EPP <check>.
+// Concrete CheckType types implement this interface.
+type CheckType interface {
 	EPPCheck()
 }

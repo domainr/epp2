@@ -32,7 +32,7 @@ func (c *Command) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 	return nil
 }
 
-// CommandType is a child element of EPP <Command>.
+// CommandType is a child element of EPP <command>.
 // Concrete CommandType types implement this interface.
 type CommandType interface {
 	eppCommand()
