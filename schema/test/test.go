@@ -58,13 +58,13 @@ func RoundTripName(t *testing.T, name xml.Name, v interface{}, want string, want
 		return
 	}
 
-	i := reflect.New(reflect.TypeOf(v).Elem()).Interface()
-	err = xml.Unmarshal(buf.Bytes(), i)
+	got := reflect.New(reflect.TypeOf(v).Elem()).Interface()
+	err = xml.Unmarshal(buf.Bytes(), got)
 	if err != nil {
 		t.Errorf("xml.Unmarshal() error = %v", err)
 		return
 	}
-	if !reflect.DeepEqual(v, v) {
-		t.Errorf("xml.Unmarshal()\nGot:  %#v\nWant: %#v", i, v)
+	if !reflect.DeepEqual(v, got) {
+		t.Errorf("xml.Unmarshal()\nGot:  %#v\nWant: %#v", got, v)
 	}
 }
