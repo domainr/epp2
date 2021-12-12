@@ -60,9 +60,6 @@ type client struct {
 
 	mCommands sync.Mutex
 	commands  map[string]transaction
-
-	// done is closed when the client receives a fatal error or the connection is closed.
-	done chan struct{}
 }
 
 // NewClient returns a new Transport using conn.
@@ -78,7 +75,6 @@ func newClient(t Transport) *client {
 		transport:   t,
 		hasGreeting: make(chan struct{}),
 		commands:    make(map[string]transaction),
-		done:        make(chan struct{}),
 	}
 }
 
