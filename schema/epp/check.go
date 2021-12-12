@@ -1,8 +1,9 @@
 package epp
 
 import (
-	"github.com/domainr/epp2/schema/domain"
 	"github.com/nbio/xml"
+
+	"github.com/domainr/epp2/schema"
 )
 
 // Check represents an EPP <check> command as defined in RFC 5730.
@@ -14,25 +15,18 @@ type Check struct {
 
 func (Check) eppCommand() {}
 
-// UnmarshalXML implements the xml.Unmarshaler interface.
-// It maps known EPP check commands to their corresponding Go type.
+// UnmarshalXML implements the xml.Unmarshaler interface. It requires an
+// xml.Decoder with an associated schema.Factory to correctly decode EPP <check>
+// sub-elements.
 func (c *Check) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
-	type T Check
-	var v struct {
-		DomainCheck *domain.Check
-		// TODO: HostCheck, etc.
-		*T
+	elements, err := schema.DecodeElements(d)
+	if len(elements) > 0 {
+		if check, ok := elements[0].(CheckType); ok {
+			c.Check = check
+		}
 	}
-	v.T = (*T)(c)
-	err := d.DecodeElement(&v, &start)
-	if err != nil {
-		return err
-	}
-	switch {
-	case v.DomainCheck != nil:
-		c.Check = v.DomainCheck
-	}
-	return nil
+	return err
+
 }
 
 // CheckType is a child element of EPP <check>.
