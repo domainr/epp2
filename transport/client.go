@@ -62,9 +62,9 @@ type client struct {
 	commands  map[string]transaction
 }
 
-// NewClient returns a new Transport using conn.
-func NewClient(conn Transport) Client {
-	c := newClient(conn)
+// NewClient returns a new Client using t.
+func NewClient(t Transport) Client {
+	c := newClient(t)
 	// Read the initial <greeting> from the server.
 	go c.readEPP()
 	return c
@@ -74,7 +74,6 @@ func newClient(t Transport) *client {
 	return &client{
 		transport:   t,
 		hasGreeting: make(chan struct{}),
-		commands:    make(map[string]transaction),
 	}
 }
 
@@ -323,6 +322,9 @@ func (c *client) pushCommand(id string, tx transaction) error {
 	_, ok := c.commands[id]
 	if ok {
 		return fmt.Errorf("epp: transaction already exists: %s", id)
+	}
+	if c.commands == nil {
+		c.commands = make(map[string]transaction)
 	}
 	c.commands[id] = tx
 	return nil
