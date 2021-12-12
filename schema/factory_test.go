@@ -7,6 +7,65 @@ import (
 	"github.com/nbio/xml"
 )
 
+func TestFactory(t *testing.T) {
+	var n int
+	f := FactoryFunc(func(name xml.Name) interface{} {
+		if name.Space != "space" {
+			return nil
+		}
+		switch name.Local {
+		case "bytes":
+			return []byte{}
+		case "struct":
+			return &struct{}{}
+		case "int":
+			var v int
+			return &v
+		}
+		return nil
+	})
+
+	tests := []struct {
+		name string
+		arg  xml.Name
+		want interface{}
+	}{
+		{
+			`empty name`,
+			xml.Name{},
+			nil,
+		},
+		{
+			`no namespace`,
+			xml.Name{Local: "bytes"},
+			nil,
+		},
+		{
+			`bytes`,
+			xml.Name{Space: "space", Local: "bytes"},
+			[]byte{},
+		},
+		{
+			`struct`,
+			xml.Name{Space: "space", Local: "struct"},
+			&struct{}{},
+		},
+		{
+			`int`,
+			xml.Name{Space: "space", Local: "int"},
+			&n,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := f.New(tt.arg)
+			if !reflect.DeepEqual(tt.want, got) {
+				t.Errorf("f.New(%v)\nGot:  %#v\nWant: %#v", tt.arg, got, tt.want)
+			}
+		})
+	}
+}
+
 type testFactory struct {
 	v interface{}
 }
