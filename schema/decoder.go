@@ -23,7 +23,7 @@ func WithFactory(d *xml.Decoder, f Factory) *xml.Decoder {
 	saved := d.CharsetReader
 	d.CharsetReader = func(charset string, r io.Reader) (io.Reader, error) {
 		var err error
-		if saved != nil && r != nil {
+		if saved != nil {
 			r, err = saved(charset, r)
 		}
 		return &factoryReader{f, r}, err
@@ -37,7 +37,7 @@ func GetFactory(d *xml.Decoder) Factory {
 	if d.CharsetReader == nil {
 		return nil
 	}
-	r, err := d.CharsetReader("", nil)
+	r, err := d.CharsetReader("utf-8", eof{})
 	if err != nil {
 		return nil
 	}
@@ -45,6 +45,12 @@ func GetFactory(d *xml.Decoder) Factory {
 		return f
 	}
 	return nil
+}
+
+type eof struct{}
+
+func (eof) Read([]byte) (int, error) {
+	return 0, io.EOF
 }
 
 // UseFactory associates a Factory f with xml.Decoder d and calls cb with the
