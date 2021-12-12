@@ -8,29 +8,31 @@ import (
 	"github.com/domainr/epp2/schema/host"
 )
 
+// TODO: get rid of this file and package.
+
 const (
-	// EPP defines the IETF URN for the EPP namespace.
+	// EPP is the IETF URN for the EPP namespace.
 	// See https://www.iana.org/assignments/xml-registry/ns/epp-1.0.txt.
 	EPP = epp.NS
 
-	// Common defines the IETF URN for the EPP common namespace.
+	// Common is the IETF URN for the EPP common namespace.
 	// See https://www.iana.org/assignments/xml-registry/ns/eppcom-1.0.txt.
 	Common = common.NS
 
-	// Host defines the IETF URN for the EPP contact namespace.
+	// Host is the IETF URN for the EPP contact namespace.
 	// See https://www.iana.org/assignments/xml-registry/ns/contact-1.0.txt.
 	Contact = contact.NS
 
-	// Domain defines the IETF URN for the EPP domain namespace.
+	// Domain is the IETF URN for the EPP domain namespace.
 	// See https://www.iana.org/assignments/xml-registry/ns/domain-1.0.txt
 	// and https://datatracker.ietf.org/doc/html/rfc5731.
 	Domain = domain.NS
 
-	// Host defines the IETF URN for the EPP host namespace.
+	// Host is the IETF URN for the EPP host namespace.
 	// See https://www.iana.org/assignments/xml-registry/ns/host-1.0.txt.
 	Host = host.NS
 
-	// SecDNS defines the IETF URN for the EPP DNSSEC namespace.
+	// SecDNS is the IETF URN for the EPP DNSSEC namespace.
 	// See https://datatracker.ietf.org/doc/html/rfc5910.
 	SecDNS = "urn:ietf:params:xml:ns:secDNS-1.1"
 
