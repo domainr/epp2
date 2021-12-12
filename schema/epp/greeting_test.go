@@ -67,7 +67,7 @@ func TestGreetingRoundTrip(t *testing.T) {
 						Access: epp.AccessPersonalAndOther,
 						Statements: []epp.Statement{
 							{
-								Purpose:   epp.PurposeAdmin,
+								Purpose:   epp.PurposeAdmin(),
 								Recipient: epp.Recipient{Ours: &epp.Ours{Recipient: "Domainr"}, Public: std.True},
 							},
 							{

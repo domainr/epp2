@@ -45,12 +45,12 @@ type Purpose struct {
 	Other        std.Bool `xml:"other"`
 }
 
-var (
-	PurposeAdmin        = Purpose{Admin: std.True}
-	PurposeContact      = Purpose{Contact: std.True}
-	PurposeProvisioning = Purpose{Provisioning: std.True}
-	PurposeOther        = Purpose{Other: std.True}
-)
+func PurposeNone() Purpose         { return Purpose{} }
+func PurposeAdmin() Purpose        { return Purpose{Admin: true} }
+func PurposeContact() Purpose      { return Purpose{Contact: true} }
+func PurposeProvisioning() Purpose { return Purpose{Provisioning: true} }
+func PurposeOther() Purpose        { return Purpose{Other: true} }
+func PurposeAll() Purpose          { return Purpose{true, true, true, true} }
 
 // Recipient represents an EPP server’s purpose for data collection.
 type Recipient struct {
