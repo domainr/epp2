@@ -1,4 +1,4 @@
-package epp
+package transport
 
 import (
 	"context"
@@ -89,19 +89,19 @@ func (c *transport) Close() error {
 // ServerConfig returns the server configuration described in a <greeting> message.
 // Will block until the an initial <greeting> is received, or ctx is canceled.
 //
-// TODO: move this to Client.
-func (c *transport) ServerConfig(ctx context.Context) (Config, error) {
-	g, err := c.Greeting(ctx)
-	if err != nil {
-		return Config{}, err
-	}
-	return configFromGreeting(g), nil
-}
+// TODO: move this to epp.Client.
+// func (c *transport) ServerConfig(ctx context.Context) (Config, error) {
+// 	g, err := c.Greeting(ctx)
+// 	if err != nil {
+// 		return Config{}, err
+// 	}
+// 	return configFromGreeting(g), nil
+// }
 
 // ServerName returns the most recently received server name.
 // Will block until an initial <greeting> is received, or ctx is canceled.
 //
-// TODO: move this to Client.
+// TODO: move this to epp.Client.
 func (c *transport) ServerName(ctx context.Context) (string, error) {
 	g, err := c.Greeting(ctx)
 	if err != nil {
@@ -113,7 +113,7 @@ func (c *transport) ServerName(ctx context.Context) (string, error) {
 // ServerTime returns the most recently received timestamp from the server.
 // Will block until an initial <greeting> is received, or ctx is canceled.
 //
-// TODO: move this to Client.
+// TODO: move this to epp.Client.
 // TODO: what is used for?
 func (c *transport) ServerTime(ctx context.Context) (time.Time, error) {
 	g, err := c.Greeting(ctx)
