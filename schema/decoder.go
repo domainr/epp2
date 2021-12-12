@@ -108,26 +108,29 @@ func DecodeElement(d *xml.Decoder, start xml.StartElement) (interface{}, error) 
 	return v, err
 }
 
-// DecodeElements will read and attempt to decode a sequence of XML elements
-// using a Factory associated with d. Unrecognized tag names will be decoded
-// into an instance of Any.
-func DecodeElements(d *xml.Decoder) ([]interface{}, error) {
-	var values []interface{}
+// DecodeElements attempts to decode a sequence of XML elements using a Factory
+// associated with d. Unrecognized tag names will be decoded into an instance of
+// Any. The callback cb will be called for each decoded element. Decoding will
+// stop if cb returns an error.
+func DecodeElements(d *xml.Decoder, cb func(interface{}) error) error {
 	for {
 		tok, err := d.Token()
 		if err == io.EOF {
 			break
 		}
 		if err != nil {
-			return values, err
+			return err
 		}
 		if start, ok := tok.(xml.StartElement); ok {
 			v, err := DecodeElement(d, start)
 			if err != nil {
-				return values, err
+				return err
 			}
-			values = append(values, v)
+			err = cb(v)
+			if err != nil {
+				return err
+			}
 		}
 	}
-	return values, nil
+	return nil
 }

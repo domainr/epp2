@@ -19,14 +19,12 @@ func (Check) eppCommand() {}
 // xml.Decoder with an associated schema.Factory to correctly decode EPP <check>
 // sub-elements.
 func (c *Check) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
-	elements, err := schema.DecodeElements(d)
-	if len(elements) > 0 {
-		if check, ok := elements[0].(CheckType); ok {
+	return schema.DecodeElements(d, func(v interface{}) error {
+		if check, ok := v.(CheckType); ok {
 			c.Check = check
 		}
-	}
-	return err
-
+		return nil
+	})
 }
 
 // CheckType is a child element of EPP <check>.
