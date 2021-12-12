@@ -7,7 +7,7 @@ import (
 // Factory is a generic interface that can return a new instance of a type
 // identified by an xml.Name.
 //
-// New should return nil for any xml.Name it does not recognize.
+// New must return nil for any xml.Name it does not recognize.
 type Factory interface {
 	New(name xml.Name) interface{}
 }
