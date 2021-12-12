@@ -28,26 +28,26 @@ type Pipe struct {
 var _ Transport = &Pipe{}
 
 // ReadDataUnit reads a single EPP data unit from t, returning the payload bytes or an error.
-func (t *Pipe) ReadDataUnit() ([]byte, error) {
-	return ReadDataUnit(t.R)
+func (p *Pipe) ReadDataUnit() ([]byte, error) {
+	return ReadDataUnit(p.R)
 }
 
 // WriteDataUnit writes a single EPP data unit to t or returns an error.
-func (t *Pipe) WriteDataUnit(data []byte) error {
-	return WriteDataUnit(t.W, data)
+func (p *Pipe) WriteDataUnit(data []byte) error {
+	return WriteDataUnit(p.W, data)
 }
 
 // Close attempts to close both the underlying reader and writer.
 // It will return the first error encountered.
-func (t *Pipe) Close() error {
+func (p *Pipe) Close() error {
 	var rerr, werr error
-	if c, ok := t.R.(io.Closer); ok {
+	if c, ok := p.R.(io.Closer); ok {
 		rerr = c.Close()
 	}
-	if r, ok := t.W.(io.Reader); ok && r == t.R {
+	if r, ok := p.W.(io.Reader); ok && r == p.R {
 		return rerr
 	}
-	if c, ok := t.W.(io.Closer); ok {
+	if c, ok := p.W.(io.Closer); ok {
 		werr = c.Close()
 	}
 	if rerr != nil {
@@ -69,6 +69,6 @@ func (c *Conn) ReadDataUnit() ([]byte, error) {
 }
 
 // WriteDataUnit writes a single EPP data unit to t or returns an error.
-func (c *Conn) WriteDataUnit(p []byte) error {
-	return WriteDataUnit(c.Conn, p)
+func (c *Conn) WriteDataUnit(data []byte) error {
+	return WriteDataUnit(c.Conn, data)
 }
