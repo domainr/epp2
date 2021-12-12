@@ -31,25 +31,6 @@ type DCP struct {
 	Expiry     *Expiry     `xml:"expiry"`
 }
 
-// Access represents an EPP server’s scope of data access as defined in RFC 5730.
-type Access struct {
-	Null             std.Bool `xml:"null"`
-	All              std.Bool `xml:"all"`
-	None             std.Bool `xml:"none"`
-	Other            std.Bool `xml:"other"`
-	Personal         std.Bool `xml:"personal"`
-	PersonalAndOther std.Bool `xml:"personalAndOther"`
-}
-
-var (
-	AccessNull             = Access{Null: std.True}
-	AccessAll              = Access{All: std.True}
-	AccessNone             = Access{None: std.True}
-	AccessOther            = Access{Other: std.True}
-	AccessPersonal         = Access{Personal: std.True}
-	AccessPersonalAndOther = Access{PersonalAndOther: std.True}
-)
-
 // Statement describes an EPP server’s data collection purpose, receipient(s), and retention policy.
 type Statement struct {
 	Purpose   Purpose   `xml:"purpose"`
