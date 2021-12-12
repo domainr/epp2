@@ -40,7 +40,14 @@ type Client interface {
 }
 
 type client struct {
-	conn Transport
+	// reading synchronizes reads from transport.
+	reading sync.Mutex
+
+	// writing synchronizes writes to transport.
+	writing sync.Mutex
+
+	// TODO: rename this.
+	transport Transport
 
 	// greeting stores the most recently received <greeting> from the server.
 	greeting atomic.Value
@@ -60,15 +67,15 @@ type client struct {
 
 // NewClient returns a new Transport using conn.
 func NewClient(conn Transport) Client {
-	t := newClient(conn)
+	c := newClient(conn)
 	// Read the initial <greeting> from the server.
-	go t.readEPP()
-	return t
+	go c.readEPP()
+	return c
 }
 
-func newClient(conn Transport) *client {
+func newClient(t Transport) *client {
 	return &client{
-		conn:        conn,
+		transport:   t,
 		hasGreeting: make(chan struct{}),
 		commands:    make(map[string]transaction),
 		done:        make(chan struct{}),
@@ -77,7 +84,7 @@ func newClient(conn Transport) *client {
 
 // Close closes the connection and cancels any pending commands.
 func (c *client) Close() error {
-	err := c.conn.Close()
+	err := c.transport.Close()
 	cerr := err
 	if cerr == nil {
 		cerr = ErrClosedConnection
@@ -209,13 +216,18 @@ func (c *client) writeEPP(body epp.Body) error {
 // writeDataUnit writes a single EPP data unit to the underlying Transport.
 // Writes are synchronized, so it is safe to call this from multiple goroutines.
 func (c *client) writeDataUnit(p []byte) error {
-	return c.conn.WriteDataUnit(p)
+	c.writing.Lock()
+	err := c.transport.WriteDataUnit(p)
+	c.writing.Unlock()
+	return err
 }
 
 // readEPP reads a single EPP data unit from c.t and dispatches it to an
 // awaiting transaction.
 func (c *client) readEPP() error {
-	p, err := c.conn.ReadDataUnit()
+	c.reading.Lock()
+	p, err := c.transport.ReadDataUnit()
+	c.reading.Unlock()
 	if err != nil {
 		return err
 	}
