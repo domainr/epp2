@@ -91,6 +91,16 @@ func TestCommandRoundTrip(t *testing.T) {
 			false,
 		},
 		{
+			`empty <renew> command`,
+			&epp.EPP{
+				Body: &epp.Command{
+					Command: &epp.Renew{},
+				},
+			},
+			`<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"><command><renew></renew></command></epp>`,
+			false,
+		},
+		{
 			`empty <transfer> command`,
 			&epp.EPP{
 				Body: &epp.Command{
@@ -117,10 +127,3 @@ func TestCommandRoundTrip(t *testing.T) {
 		})
 	}
 }
-
-// case "logout":
-// 	return &Logout{}
-// case "renew":
-// 	return &Renew{}
-// case "update":
-// 	return &Update{}
