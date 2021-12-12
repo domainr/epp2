@@ -61,6 +61,13 @@ type Recipient struct {
 	Unrelated std.Bool `xml:"unrelated"`
 }
 
+func RecipientNone() Recipient                 { return Recipient{} }
+func RecipientOther() Recipient                { return Recipient{Other: true} }
+func RecipientOurs(recipient string) Recipient { return Recipient{Ours: &Ours{recipient}} }
+func RecipientPublic() Recipient               { return Recipient{Public: true} }
+func RecipientSame() Recipient                 { return Recipient{Same: true} }
+func RecipientUnrelated() Recipient            { return Recipient{Unrelated: true} }
+
 // Ours represents an EPP server’s description of an <ours> recipient.
 type Ours struct {
 	Recipient string `xml:"recDesc"`
