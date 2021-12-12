@@ -7,12 +7,12 @@ import "github.com/nbio/xml"
 // False: (no tag)
 type Bool bool
 
-var (
+const (
 	// True is a Bool of value true.
-	True = Bool(true)
+	True Bool = true
 
 	// False is a Bool of value false.
-	False = Bool(false)
+	False Bool = false
 )
 
 // UnmarshalXML impements the xml.Unmarshaler interface.
