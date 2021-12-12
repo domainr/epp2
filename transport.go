@@ -38,6 +38,7 @@ type Transport interface {
 	// Close closes the connection.
 	Close() error
 }
+
 type transport struct {
 	conn Conn
 
