@@ -5,8 +5,9 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/domainr/epp2/schema"
 	"github.com/nbio/xml"
+
+	"github.com/domainr/epp2/schema"
 )
 
 // RoundTrip validates if v marshals to want or wantErr (if set),
