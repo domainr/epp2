@@ -47,7 +47,7 @@ type commandWrapper struct {
 // UnmarshalXML requires an xml.Decoder with an associated schema.Factory to
 // property decode EPP <command> sub-elements.
 func (c *commandWrapper) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
-	e, err := schema.DecodeElement(d, &start)
+	e, err := schema.DecodeElement(d, start)
 	if ct, ok := e.(CommandType); ok {
 		c.Command = ct
 	}

@@ -5,8 +5,6 @@ import (
 	"io"
 
 	"github.com/nbio/xml"
-
-	"github.com/domainr/epp2/schema/raw"
 )
 
 // WithFactory associates a Factory f with xml.Decoder d by overriding the
@@ -90,26 +88,24 @@ func Unmarshal(p []byte, v interface{}, f Factory) error {
 }
 
 // DecodeElement attempts to decode start using a Factory associated with d.
-// Unrecognized tag names will be decoded into a raw.XML struct.
-func DecodeElement(d *xml.Decoder, start *xml.StartElement) (interface{}, error) {
+// Unrecognized tag names will be decoded into an instance of Any.
+func DecodeElement(d *xml.Decoder, start xml.StartElement) (interface{}, error) {
 	var v interface{}
-	if start != nil {
-		f := GetFactory(d)
-		if f != nil {
-			v = f.New(start.Name)
-		}
+	f := GetFactory(d)
+	if f != nil {
+		v = f.New(start.Name)
 	}
 	if v == nil {
-		v = &raw.XML{}
+		v = &Any{}
 	}
-	err := d.DecodeElement(v, start)
+	err := d.DecodeElement(v, &start)
 	return v, err
 }
 
-// DecodeChildren attempts to decode the immediate child elements of start using
-// a Factory associated with d. Unrecognized tag names will be decoded into a
-// raw.XML struct.
-func DecodeChildren(d *xml.Decoder, start *xml.StartElement) ([]interface{}, error) {
+// DecodeElements will read and attempt to decode a sequence of XML elements
+// using a Factory associated with d. Unrecognized tag names will be decoded
+// into an instance of Any.
+func DecodeElements(d *xml.Decoder) ([]interface{}, error) {
 	var values []interface{}
 	for {
 		tok, err := d.Token()
@@ -120,7 +116,7 @@ func DecodeChildren(d *xml.Decoder, start *xml.StartElement) ([]interface{}, err
 			return values, err
 		}
 		if start, ok := tok.(xml.StartElement); ok {
-			v, err := DecodeElement(d, &start)
+			v, err := DecodeElement(d, start)
 			if err != nil {
 				return values, err
 			}

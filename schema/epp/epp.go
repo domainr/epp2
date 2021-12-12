@@ -16,7 +16,7 @@ type EPP struct {
 
 func (e *EPP) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 	return schema.UseFactory(d, Factory(), func(d *xml.Decoder) error {
-		elements, err := schema.DecodeChildren(d, &start)
+		elements, err := schema.DecodeElements(d)
 		if len(elements) > 0 {
 			if body, ok := elements[0].(Body); ok {
 				e.Body = body

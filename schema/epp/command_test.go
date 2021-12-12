@@ -3,12 +3,17 @@ package epp_test
 import (
 	"testing"
 
+	"github.com/domainr/epp2/schema"
 	"github.com/domainr/epp2/schema/domain"
 	"github.com/domainr/epp2/schema/epp"
 	"github.com/domainr/epp2/schema/test"
 )
 
 func TestCommandRoundTrip(t *testing.T) {
+	f := schema.Factories(
+		domain.Factory(),
+	)
+
 	tests := []struct {
 		name    string
 		v       interface{}
@@ -50,7 +55,7 @@ func TestCommandRoundTrip(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			test.RoundTrip(t, tt.v, tt.want, tt.wantErr)
+			test.RoundTrip(t, f, tt.v, tt.want, tt.wantErr)
 		})
 	}
 }

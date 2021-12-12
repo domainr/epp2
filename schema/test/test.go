@@ -5,12 +5,13 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/domainr/epp2/schema"
 	"github.com/nbio/xml"
 )
 
 // RoundTrip validates if v marshals to want or wantErr (if set),
 // and the resulting XML unmarshals to v.
-func RoundTrip(t *testing.T, v interface{}, wantXML string, wantErr bool) {
+func RoundTrip(t *testing.T, f schema.Factory, v interface{}, wantXML string, wantErr bool) {
 	gotXML, err := xml.Marshal(v)
 	if (err != nil) != wantErr {
 		t.Errorf("xml.Marshal() error = %v, wantErr %v", err, wantErr)
@@ -25,19 +26,19 @@ func RoundTrip(t *testing.T, v interface{}, wantXML string, wantErr bool) {
 	}
 
 	got := reflect.New(reflect.TypeOf(v).Elem()).Interface()
-	err = xml.Unmarshal(gotXML, got)
+	err = schema.Unmarshal(gotXML, got, f)
 	if err != nil {
-		t.Errorf("xml.Unmarshal() error = %v", err)
+		t.Errorf("Unmarshal() error = %v", err)
 		return
 	}
 	if !reflect.DeepEqual(v, got) {
-		t.Errorf("xml.Unmarshal()\nGot:  %#v\nWant: %#v", got, v)
+		t.Errorf("Unmarshal()\nGot:  %#v\nWant: %#v", got, v)
 	}
 }
 
 // RoundTripName validates if v marshals to want or wantErr (if set),
 // and the resulting XML unmarshals to v. The outer XML tag will use name, if set.
-func RoundTripName(t *testing.T, name xml.Name, v interface{}, want string, wantErr bool) {
+func RoundTripName(t *testing.T, f schema.Factory, name xml.Name, v interface{}, want string, wantErr bool) {
 	var err error
 	buf := &bytes.Buffer{}
 	enc := xml.NewEncoder(buf)
@@ -59,12 +60,12 @@ func RoundTripName(t *testing.T, name xml.Name, v interface{}, want string, want
 	}
 
 	got := reflect.New(reflect.TypeOf(v).Elem()).Interface()
-	err = xml.Unmarshal(buf.Bytes(), got)
+	err = schema.Unmarshal(buf.Bytes(), got, f)
 	if err != nil {
-		t.Errorf("xml.Unmarshal() error = %v", err)
+		t.Errorf("Unmarshal() error = %v", err)
 		return
 	}
 	if !reflect.DeepEqual(v, got) {
-		t.Errorf("xml.Unmarshal()\nGot:  %#v\nWant: %#v", got, v)
+		t.Errorf("Unmarshal()\nGot:  %#v\nWant: %#v", got, v)
 	}
 }

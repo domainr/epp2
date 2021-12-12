@@ -47,7 +47,7 @@ func TestEPPRoundTrip(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			test.RoundTrip(t, tt.v, tt.want, tt.wantErr)
+			test.RoundTrip(t, nil, tt.v, tt.want, tt.wantErr)
 		})
 	}
 }
