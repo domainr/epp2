@@ -12,10 +12,10 @@ import (
 	"github.com/domainr/epp2/schema/epp"
 )
 
-// Transport is a low-level client for the Extensible Provisioning Protocol (EPP)
+// Client is a low-level client for the Extensible Provisioning Protocol (EPP)
 // as defined in RFC 3790. See https://www.rfc-editor.org/rfc/rfc5730.html.
-// A Transport is safe to use from multiple goroutines.
-type Transport interface {
+// A Client is safe to use from multiple goroutines.
+type Client interface {
 	// Command sends an EPP command and returns an EPP response.
 	// It blocks until a response is received, ctx is canceled, or
 	// the underlying connection is closed.
@@ -39,7 +39,7 @@ type Transport interface {
 	Close() error
 }
 
-type transport struct {
+type client struct {
 	conn Conn
 
 	// greeting stores the most recently received <greeting> from the server.
@@ -58,16 +58,16 @@ type transport struct {
 	done chan struct{}
 }
 
-// NewTransport returns a new Transport using conn.
-func NewTransport(conn Conn) Transport {
-	t := newTransport(conn)
+// NewClient returns a new Transport using conn.
+func NewClient(conn Conn) Client {
+	t := newClient(conn)
 	// Read the initial <greeting> from the server.
 	go t.readEPP()
 	return t
 }
 
-func newTransport(conn Conn) *transport {
-	return &transport{
+func newClient(conn Conn) *client {
+	return &client{
 		conn:        conn,
 		hasGreeting: make(chan struct{}),
 		commands:    make(map[string]transaction),
@@ -76,7 +76,7 @@ func newTransport(conn Conn) *transport {
 }
 
 // Close closes the connection and cancels any pending commands.
-func (c *transport) Close() error {
+func (c *client) Close() error {
 	err := c.conn.Close()
 	cerr := err
 	if cerr == nil {
@@ -90,7 +90,7 @@ func (c *transport) Close() error {
 // Will block until the an initial <greeting> is received, or ctx is canceled.
 //
 // TODO: move this to epp.Client.
-// func (c *transport) ServerConfig(ctx context.Context) (Config, error) {
+// func (c *client) ServerConfig(ctx context.Context) (Config, error) {
 // 	g, err := c.Greeting(ctx)
 // 	if err != nil {
 // 		return Config{}, err
@@ -102,7 +102,7 @@ func (c *transport) Close() error {
 // Will block until an initial <greeting> is received, or ctx is canceled.
 //
 // TODO: move this to epp.Client.
-func (c *transport) ServerName(ctx context.Context) (string, error) {
+func (c *client) ServerName(ctx context.Context) (string, error) {
 	g, err := c.Greeting(ctx)
 	if err != nil {
 		return "", err
@@ -115,7 +115,7 @@ func (c *transport) ServerName(ctx context.Context) (string, error) {
 //
 // TODO: move this to epp.Client.
 // TODO: what is used for?
-func (c *transport) ServerTime(ctx context.Context) (time.Time, error) {
+func (c *client) ServerTime(ctx context.Context) (time.Time, error) {
 	g, err := c.Greeting(ctx)
 	if err != nil {
 		return time.Time{}, err
@@ -126,7 +126,7 @@ func (c *transport) ServerTime(ctx context.Context) (time.Time, error) {
 // Command sends an EPP command and returns an EPP response.
 // It blocks until a response is received, ctx is canceled, or
 // the underlying connection is closed.
-func (c *transport) Command(ctx context.Context, cmd *epp.Command) (*epp.Response, error) {
+func (c *client) Command(ctx context.Context, cmd *epp.Command) (*epp.Response, error) {
 	tx, cancel := newTransaction(ctx)
 	defer cancel()
 	c.pushCommand(cmd.ClientTransactionID, tx)
@@ -154,7 +154,7 @@ func (c *transport) Command(ctx context.Context, cmd *epp.Command) (*epp.Respons
 
 // Hello sends an EPP <hello> message to the server.
 // It will block until the next <greeting> message is received or ctx is canceled.
-func (c *transport) Hello(ctx context.Context) (*epp.Greeting, error) {
+func (c *client) Hello(ctx context.Context) (*epp.Greeting, error) {
 	tx, cancel := newTransaction(ctx)
 	defer cancel()
 	c.pushHello(tx)
@@ -183,7 +183,7 @@ func (c *transport) Hello(ctx context.Context) (*epp.Greeting, error) {
 // Greeting returns the last <greeting> recieved from the server.
 // It blocks until the <greeting> is received, ctx is canceled, or
 // the underlying connection is closed.
-func (c *transport) Greeting(ctx context.Context) (*epp.Greeting, error) {
+func (c *client) Greeting(ctx context.Context) (*epp.Greeting, error) {
 	g := c.greeting.Load()
 	if g != nil {
 		return g.(*epp.Greeting), nil
@@ -198,7 +198,7 @@ func (c *transport) Greeting(ctx context.Context) (*epp.Greeting, error) {
 
 // writeEPP writes body to the underlying Transport.
 // Writes are synchronized, so it is safe to call this from multiple goroutines.
-func (c *transport) writeEPP(body epp.Body) error {
+func (c *client) writeEPP(body epp.Body) error {
 	x, err := xml.Marshal(epp.EPP{Body: body})
 	if err != nil {
 		return err
@@ -208,13 +208,13 @@ func (c *transport) writeEPP(body epp.Body) error {
 
 // writeDataUnit writes a single EPP data unit to the underlying Transport.
 // Writes are synchronized, so it is safe to call this from multiple goroutines.
-func (c *transport) writeDataUnit(p []byte) error {
+func (c *client) writeDataUnit(p []byte) error {
 	return c.conn.WriteDataUnit(p)
 }
 
 // readEPP reads a single EPP data unit from c.t and dispatches it to an
 // awaiting transaction.
-func (c *transport) readEPP() error {
+func (c *client) readEPP() error {
 	p, err := c.conn.ReadDataUnit()
 	if err != nil {
 		return err
@@ -222,7 +222,7 @@ func (c *transport) readEPP() error {
 	return c.handleDataUnit(p)
 }
 
-func (c *transport) handleDataUnit(p []byte) error {
+func (c *client) handleDataUnit(p []byte) error {
 	var e epp.EPP
 	err := xml.Unmarshal(p, &e)
 	if err != nil {
@@ -231,7 +231,7 @@ func (c *transport) handleDataUnit(p []byte) error {
 	return c.handleReply(e.Body)
 }
 
-func (c *transport) handleReply(body epp.Body) error {
+func (c *client) handleReply(body epp.Body) error {
 	switch body := body.(type) {
 	case *epp.Response:
 		id := body.TransactionID.Client
@@ -280,7 +280,7 @@ func (c *transport) handleReply(body epp.Body) error {
 	return nil
 }
 
-func (c *transport) replyTo(t transaction, body epp.Body, err error) error {
+func (c *client) replyTo(t transaction, body epp.Body, err error) error {
 	select {
 	case <-t.ctx.Done():
 		return t.ctx.Err()
@@ -290,14 +290,14 @@ func (c *transport) replyTo(t transaction, body epp.Body, err error) error {
 }
 
 // pushHello adds a <hello> transaction to the end of the stack.
-func (c *transport) pushHello(tx transaction) {
+func (c *client) pushHello(tx transaction) {
 	c.mHellos.Lock()
 	defer c.mHellos.Unlock()
 	c.hellos = append(c.hellos, tx)
 }
 
 // popHello pops the oldest <hello> transaction off the front of the stack.
-func (c *transport) popHello() (transaction, bool) {
+func (c *client) popHello() (transaction, bool) {
 	c.mHellos.Lock()
 	defer c.mHellos.Unlock()
 	if len(c.hellos) == 0 {
@@ -309,7 +309,7 @@ func (c *transport) popHello() (transaction, bool) {
 }
 
 // pushCommand adds a <command> transaction to the map of in-flight commands.
-func (c *transport) pushCommand(id string, tx transaction) error {
+func (c *client) pushCommand(id string, tx transaction) error {
 	c.mCommands.Lock()
 	defer c.mCommands.Unlock()
 	_, ok := c.commands[id]
@@ -321,7 +321,7 @@ func (c *transport) pushCommand(id string, tx transaction) error {
 }
 
 // popCommand removes a <command> transaction from the map of in-flight commands.
-func (c *transport) popCommand(id string) (transaction, bool) {
+func (c *client) popCommand(id string) (transaction, bool) {
 	c.mCommands.Lock()
 	defer c.mCommands.Unlock()
 	tx, ok := c.commands[id]
@@ -335,7 +335,7 @@ func (c *transport) popCommand(id string) (transaction, bool) {
 // Each transaction will be finalized with err, which may be nil.
 //
 // TODO: clean up stale or abandoned transactions on a regular basis?
-func (c *transport) cleanup(err error) {
+func (c *client) cleanup(err error) {
 	c.mHellos.Lock()
 	hellos := c.hellos
 	c.hellos = nil
