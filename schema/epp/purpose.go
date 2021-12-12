@@ -18,26 +18,18 @@ const (
 	PurposeOther        Purpose = 8
 )
 
-// ParsePurpose parses s into an Purpose.
-// It returns PurposeOther if s is not recognized.
-func ParsePurpose(s string) Purpose {
-	var p Purpose
-	for _, t := range strings.Split(s, " ") {
-		switch t {
-		case "admin":
-			p |= PurposeAdmin
-		case "contact":
-			p |= PurposeContact
-		case "provisioning":
-			p |= PurposeProvisioning
-		case "other":
-			p |= PurposeOther
-		}
+func parseOnePurpose(s string) Purpose {
+	switch s {
+	case "admin":
+		return PurposeAdmin
+	case "contact":
+		return PurposeContact
+	case "provisioning":
+		return PurposeProvisioning
+	case "other":
+		return PurposeOther
 	}
-	if p == 0 {
-		p = PurposeOther
-	}
-	return p
+	return 0
 }
 
 // String returns the a string representation for p. If p has only one value,
@@ -80,10 +72,10 @@ func (p *Purpose) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 }
 
 // UnmarshalXML implements the xml.Unmarshaler interface.
-func (a *Purpose) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
+func (p *Purpose) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 	return schema.DecodeElements(d, func(v interface{}) error {
 		if e, ok := v.(*schema.Any); ok && e.XMLName.Space == NS {
-			*a |= ParsePurpose(e.XMLName.Local)
+			*p |= parseOnePurpose(e.XMLName.Local)
 		}
 		return nil
 	})

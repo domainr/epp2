@@ -18,9 +18,7 @@ const (
 	AccessAll              Access = 8
 )
 
-// ParseAccess parses s into an Access.
-// It returns AccessNull if s is not recognized.
-func ParseAccess(s string) Access {
+func parseAccess(s string) Access {
 	switch s {
 	case "null":
 		return AccessNull
@@ -75,7 +73,7 @@ func (a *Access) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 func (a *Access) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 	return schema.DecodeElements(d, func(v interface{}) error {
 		if e, ok := v.(*schema.Any); ok && e.XMLName.Space == NS {
-			*a = ParseAccess(e.XMLName.Local)
+			*a = parseAccess(e.XMLName.Local)
 		}
 		return nil
 	})
