@@ -37,6 +37,21 @@ type Statement struct {
 	Recipient Recipient `xml:"recipient"`
 }
 
+// Purpose represents an EPP server’s purpose for data collection.
+type Purpose struct {
+	Admin        std.Bool `xml:"admin"`
+	Contact      std.Bool `xml:"contact"`
+	Provisioning std.Bool `xml:"provisioning"`
+	Other        std.Bool `xml:"other"`
+}
+
+var (
+	PurposeAdmin        = Purpose{Admin: std.True}
+	PurposeContact      = Purpose{Contact: std.True}
+	PurposeProvisioning = Purpose{Provisioning: std.True}
+	PurposeOther        = Purpose{Other: std.True}
+)
+
 // Recipient represents an EPP server’s purpose for data collection.
 type Recipient struct {
 	Other     std.Bool `xml:"other"`
