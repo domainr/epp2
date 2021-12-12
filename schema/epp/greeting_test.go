@@ -71,7 +71,7 @@ func TestGreetingRoundTrip(t *testing.T) {
 								Recipient: epp.Recipient{Ours: &epp.Ours{Recipient: "Domainr"}, Public: std.True},
 							},
 							{
-								Purpose:   epp.Purpose{Contact: std.True, Other: std.True},
+								Purpose:   epp.PurposeContact | epp.PurposeOther,
 								Recipient: epp.Recipient{Other: std.True, Ours: &epp.Ours{}, Public: std.True},
 							},
 						},

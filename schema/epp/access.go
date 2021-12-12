@@ -55,19 +55,18 @@ func (a Access) String() string {
 
 // MarshalXML impements the xml.Marshaler interface.
 func (a *Access) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
-	local := a.String()
-	if local == "" {
-		return nil
-	}
 	start.Name.Space = NS
 	start.Name.Local = "access"
 	err := e.EncodeToken(start)
 	if err != nil {
 		return nil
 	}
-	err = e.EncodeToken(xml.SelfClosingElement{Name: xml.Name{Space: NS, Local: local}})
-	if err != nil {
-		return nil
+	local := a.String()
+	if local != "" {
+		err = e.EncodeToken(xml.SelfClosingElement{Name: xml.Name{Space: NS, Local: local}})
+		if err != nil {
+			return nil
+		}
 	}
 	return e.EncodeToken(xml.EndElement{Name: start.Name})
 }
