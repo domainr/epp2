@@ -68,11 +68,11 @@ func TestGreetingRoundTrip(t *testing.T) {
 						Statements: []epp.Statement{
 							{
 								Purpose:   epp.PurposeAdmin(),
-								Recipient: epp.Recipient{Ours: &epp.Ours{Recipient: "Domainr"}, Public: std.True},
+								Recipient: epp.Recipient{Ours: &epp.Ours{Recipient: "Domainr"}, Public: true},
 							},
 							{
-								Purpose:   epp.Purpose{Contact: std.True, Other: std.True},
-								Recipient: epp.Recipient{Other: std.True, Ours: &epp.Ours{}, Public: std.True},
+								Purpose:   epp.Purpose{Contact: true, Other: true},
+								Recipient: epp.Recipient{Other: true, Ours: &epp.Ours{}, Public: true},
 							},
 						},
 						Expiry: &epp.Expiry{
