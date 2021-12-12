@@ -1,17 +1,17 @@
 /*
 Package transport provides low-level EPP client and server implementations.
 
-Opening an EPP client connection:
+Open an EPP client connection:
 
-	tcfg := &tls.Config{ServerName: "epp.example.com"}
-	tconn, err := tls.Dial("tcp", "epp.example.com:700", tcfg)
+	tlsConfig := &tls.Config{ServerName: "epp.example.com"}
+	tlsConn, err := tls.Dial("tcp", "epp.example.com:700", tlsConfig)
 	if err != nil {
 		// handle error
 	}
-	client := NewClient(&NetConn{Conn: tconn})
+	client := transport.NewClient(&transport.Conn{tlsConn})
 	// ...
 
-Waiting for the initial <greeting> from the EPP server:
+Wait for the initial <greeting> from the EPP server:
 
 	greeting, err := client.Greeting(context.Background())
 	if err != nil {
@@ -19,7 +19,7 @@ Waiting for the initial <greeting> from the EPP server:
 	}
 	// ...
 
-Sending a EPP <hello> and waiting for the new <greeting>:
+Send a EPP <hello> and wait for the new <greeting>:
 
 	greeting, err := client.Hello(context.Background())
 	if err != nil {
@@ -27,9 +27,9 @@ Sending a EPP <hello> and waiting for the new <greeting>:
 	}
 	// ...
 
-Processing an EPP <command> and waiting for a <response>:
+Process an EPP <command> and wait for a <response>:
 
-	greeting, err := client.Command(&epp.Command{...})
+	greeting, err := client.Command(context.Background(), &epp.Command{...})
 	if err != nil {
 		// handle error
 	}
