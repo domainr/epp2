@@ -1,8 +1,8 @@
 package epp
 
 import (
+	"github.com/domainr/epp2/internal/xml"
 	"github.com/domainr/epp2/schema"
-	"github.com/nbio/xml"
 )
 
 // Command represents an EPP client <command> as defined in RFC 5730.

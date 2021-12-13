@@ -1,8 +1,8 @@
 package epp
 
 import (
+	"github.com/domainr/epp2/internal/xml"
 	"github.com/domainr/epp2/schema"
-	"github.com/nbio/xml"
 )
 
 // EPP represents an <epp> element as defined in RFC 5730.

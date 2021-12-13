@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"io"
 
-	"github.com/nbio/xml"
+	"github.com/domainr/epp2/internal/xml"
 )
 
 // WithFactory associates a Factory f with xml.Decoder d by overriding the

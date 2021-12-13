@@ -1,8 +1,8 @@
 package epp
 
 import (
+	"github.com/domainr/epp2/internal/xml"
 	"github.com/domainr/epp2/schema/std"
-	"github.com/nbio/xml"
 )
 
 // MessageQueue represents an EPP server <msgQ> as defined in RFC 5730.

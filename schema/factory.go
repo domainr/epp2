@@ -1,7 +1,7 @@
 package schema
 
 import (
-	"github.com/nbio/xml"
+	"github.com/domainr/epp2/internal/xml"
 )
 
 // Factory is a generic interface that can return a new instance of a type

@@ -1,6 +1,6 @@
 package std
 
-import "github.com/nbio/xml"
+import "github.com/domainr/epp2/internal/xml"
 
 // Bool represents a boolean value that can be serialized to XML.
 // True: <tag>

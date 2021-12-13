@@ -1,6 +1,6 @@
 package schema
 
-import "github.com/nbio/xml"
+import "github.com/domainr/epp2/internal/xml"
 
 // Any represents an arbitrary XML tag and its contents. It is used when
 // unmarshaling with a Factory to represent unrecognized elements.

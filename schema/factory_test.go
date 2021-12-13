@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/nbio/xml"
+	"github.com/domainr/epp2/internal/xml"
 )
 
 func TestFactory(t *testing.T) {
