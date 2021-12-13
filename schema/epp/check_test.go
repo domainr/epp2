@@ -11,7 +11,7 @@ import (
 
 func TestCheckRoundTrip(t *testing.T) {
 	f := schema.Factories(
-		domain.Schema,
+		domain.Object,
 	)
 
 	tests := []struct {
