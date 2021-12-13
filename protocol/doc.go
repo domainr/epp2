@@ -1,5 +1,5 @@
 /*
-Package transport provides low-level EPP client and server implementations.
+Package protocol provides low-level EPP client and server implementations.
 
 Open an EPP client connection:
 
@@ -8,7 +8,7 @@ Open an EPP client connection:
 	if err != nil {
 		// handle error
 	}
-	client := transport.NewClient(&transport.Conn{tlsConn})
+	client := protocol.NewClient(&protocol.Conn{tlsConn})
 	// ...
 
 Wait for the initial <greeting> from the EPP server:
@@ -34,7 +34,6 @@ Process an EPP <command> and wait for a <response>:
 		// handle error
 	}
 	// ...
-
 */
 
-package transport
+package protocol
