@@ -2,10 +2,26 @@ package epp
 
 import (
 	"github.com/nbio/xml"
+
+	"github.com/domainr/epp2/schema"
 )
 
-// factory is a schema.Factory for types defined in the this package.
-func factory(name xml.Name) interface{} {
+// Schema implements the schema.Schema interface for the the core EPP namespace.
+const Schema schemaString = "epp"
+
+var _ schema.Schema = Schema
+
+type schemaString string
+
+func (s schemaString) SchemaName() string {
+	return string(s)
+}
+
+func (schemaString) SchemaNS() []string {
+	return []string{NS}
+}
+
+func (schemaString) New(name xml.Name) interface{} {
 	if name.Space != NS {
 		return nil
 	}
