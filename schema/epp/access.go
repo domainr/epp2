@@ -28,15 +28,12 @@ func parseAccess(s string) Access {
 
 // MarshalXML impements the xml.Marshaler interface.
 func (a Access) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
-	start.Name.Space = NS
-	start.Name.Local = "access"
 	err := e.EncodeToken(start)
 	if err != nil {
 		return nil
 	}
-	local := parseAccess(string(a))
-	if local != "" {
-		err = e.EncodeToken(xml.SelfClosingElement{Name: xml.Name{Space: NS, Local: string(local)}})
+	if parseAccess(string(a)) != "" {
+		err = e.EncodeToken(xml.SelfClosingElement{Name: xml.Name{Space: NS, Local: string(a)}})
 		if err != nil {
 			return nil
 		}
