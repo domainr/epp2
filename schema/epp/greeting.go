@@ -77,7 +77,10 @@ type Ours struct {
 // Writes a single self-closing <ours/> if v.Recipient is not set.
 func (v *Ours) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 	if v.Recipient == "" {
-		return e.EncodeToken(xml.SelfClosingElement(start))
+		type T struct {
+			XMLName struct{} `xml:",selfclosing"`
+		}
+		return e.EncodeElement(&T{}, start)
 	}
 	type T Ours
 	return e.EncodeElement((*T)(v), start)

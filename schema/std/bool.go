@@ -40,10 +40,13 @@ func (b *Bool) UnmarshalXMLAttr(attr *xml.Attr) error {
 // MarshalXML impements the xml.Marshaler interface.
 // Any tag present with this type = true.
 func (b Bool) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
-	if b {
-		e.EncodeToken(xml.SelfClosingElement(start))
+	if !b {
+		return nil
 	}
-	return nil
+	type T struct {
+		XMLName struct{} `xml:",selfclosing"`
+	}
+	return e.EncodeElement(&T{}, start)
 }
 
 // MarshalXMLAttr implements the xml.MarshalerAttr interface.

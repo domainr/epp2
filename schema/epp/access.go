@@ -28,17 +28,16 @@ func parseAccess(s string) Access {
 
 // MarshalXML impements the xml.Marshaler interface.
 func (a Access) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
-	err := e.EncodeToken(start)
-	if err != nil {
-		return nil
+	type T struct {
+		XMLName xml.Name `xml:",selfclosing"`
+	}
+	var v struct {
+		V *T
 	}
 	if parseAccess(string(a)) != "" {
-		err = e.EncodeToken(xml.SelfClosingElement{Name: xml.Name{Space: NS, Local: string(a)}})
-		if err != nil {
-			return nil
-		}
+		v.V = &T{xml.Name{Space: NS, Local: string(a)}}
 	}
-	return e.EncodeToken(xml.EndElement{Name: start.Name})
+	return e.EncodeElement(&v, start)
 }
 
 // UnmarshalXML implements the xml.Unmarshaler interface.
