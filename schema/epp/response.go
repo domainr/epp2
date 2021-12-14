@@ -22,9 +22,8 @@ func (Response) eppBody() {}
 
 // Result represents an EPP server <result> as defined in RFC 5730.
 type Result struct {
-	Code    ResultCode `xml:"code"`
-	Message Message    `xml:"message"`
-	// TODO: Values
+	Code            ResultCode       `xml:"code,attr"`
+	Message         Message          `xml:"msg"`
 	ExtensionValues []ExtensionValue `xml:"extValue,omitempty"`
 }
 

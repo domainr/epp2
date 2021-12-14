@@ -33,7 +33,7 @@ func TestResponseRoundTrip(t *testing.T) {
 					},
 				},
 			},
-			`<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"><response><result><code>1000</code><message lang="en">Command completed successfully</message></result><trID><clTRID></clTRID><svTRID></svTRID></trID></response></epp>`,
+			`<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"><response><result code="1000"><msg lang="en">Command completed successfully</msg></result><trID><clTRID></clTRID><svTRID></svTRID></trID></response></epp>`,
 			false,
 		},
 		{
@@ -52,7 +52,7 @@ func TestResponseRoundTrip(t *testing.T) {
 					},
 				},
 			},
-			`<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"><response><result><code>2004</code><message lang="en">Parameter value range error</message></result><result><code>2005</code><message lang="en">Parameter value syntax error</message></result><trID><clTRID></clTRID><svTRID></svTRID></trID></response></epp>`,
+			`<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"><response><result code="2004"><msg lang="en">Parameter value range error</msg></result><result code="2005"><msg lang="en">Parameter value syntax error</msg></result><trID><clTRID></clTRID><svTRID></svTRID></trID></response></epp>`,
 			false,
 		},
 		{
@@ -63,7 +63,7 @@ func TestResponseRoundTrip(t *testing.T) {
 						{
 							Code:    epp.ErrBillingFailure,
 							Message: epp.ErrBillingFailure.Message(),
-							ExtensionValues: []epp.ExtensionValue{
+							ExtensionValues: []epp.ExtValue{
 								{
 									Reason: epp.Message{Lang: "en", Value: "Command exceeds available balance"},
 								},
@@ -72,7 +72,7 @@ func TestResponseRoundTrip(t *testing.T) {
 					},
 				},
 			},
-			`<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"><response><result><code>2104</code><message lang="en">Billing failure</message><extValue><reason lang="en">Command exceeds available balance</reason></extValue></result><trID><clTRID></clTRID><svTRID></svTRID></trID></response></epp>`,
+			`<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"><response><result code="2104"><msg lang="en">Billing failure</msg><extValue><reason lang="en">Command exceeds available balance</reason></extValue></result><trID><clTRID></clTRID><svTRID></svTRID></trID></response></epp>`,
 			false,
 		},
 		{
@@ -91,7 +91,7 @@ func TestResponseRoundTrip(t *testing.T) {
 					},
 				},
 			},
-			`<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"><response><result><code>1000</code><message lang="en">Command completed successfully</message></result><trID><clTRID>12345</clTRID><svTRID>abcde</svTRID></trID></response></epp>`,
+			`<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"><response><result code="1000"><msg lang="en">Command completed successfully</msg></result><trID><clTRID>12345</clTRID><svTRID>abcde</svTRID></trID></response></epp>`,
 			false,
 		},
 		{
