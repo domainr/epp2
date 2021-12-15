@@ -5,16 +5,27 @@ package epp
 type Response struct {
 	XMLName struct{} `xml:"urn:ietf:params:xml:ns:epp-1.0 response"`
 
-	// Results contain one or more results (success or failure) of an EPP command.
+	// Results is one or more <result> elements describing the success or
+	// failure of an EPP command.
 	Results []Result `xml:"result,omitempty"`
 
-	// The OPTIONAL <msgQ> element describes messages queued for client
-	// retrieval.
+	// MessageQueue is the OPTIONAL <msgQ> element describes messages queued
+	// for client retrieval.
 	MessageQueue *MessageQueue `xml:"msgQ"`
 
-	// The <trID> (transaction identifier) element contains a client
-	// transaction ID of the command that elicited this response and a
-	// server transaction ID that uniquely identifies this response.
+	// Data is the OPTIONAL <resData> (response data) element
+	// contains child elements specific to the command and associated
+	// object.
+	Data []ResponseData
+
+	// Extensions represents an OPTIONAL <extension> element that MAY
+	// be used for server-defined response extensions.
+	Extensions []Extension
+
+	// TransactionID is a <trID> (transaction identifier) element that
+	// contains a CLIENT-generated transaction ID of the command and a
+	// SERVER-generated transaction ID that uniquely identifies the
+	// response.
 	TransactionID TransactionID `xml:"trID"`
 }
 
@@ -22,14 +33,15 @@ func (Response) eppBody() {}
 
 // Result represents an EPP server <result> as defined in RFC 5730.
 type Result struct {
-	Code            ResultCode       `xml:"code,attr"`
-	Message         Message          `xml:"msg"`
+	Code            ResultCode `xml:"code,attr"`
+	Message         Message    `xml:"msg"`
+	Values          []Value
 	ExtensionValues []ExtensionValue `xml:"extValue,omitempty"`
 }
 
-// ExtensionValue represents an extension to an EPP command result.
+// ExtensionValue wraps an EPP result extension value within a <result>.
 type ExtensionValue struct {
-	// TODO: value
+	Value  Value
 	Reason Message `xml:"reason"`
 }
 

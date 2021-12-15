@@ -11,7 +11,7 @@ type Login struct {
 	Services    Services `xml:"svcs"`
 }
 
-func (Login) eppCommand() {}
+func (Login) eppAction() {}
 
 // Options represent EPP login options as defined in RFC 5730.
 type Options struct {

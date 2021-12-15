@@ -11,7 +11,7 @@ import (
 
 func TestCheckRoundTrip(t *testing.T) {
 	f := schema.Factories(
-		domain.Object,
+		domain.Schema,
 	)
 
 	tests := []struct {
@@ -24,7 +24,7 @@ func TestCheckRoundTrip(t *testing.T) {
 			`empty <domain:check> command`,
 			&epp.EPP{
 				Body: &epp.Command{
-					Command: &epp.Check{
+					Action: &epp.Check{
 						Check: &domain.Check{},
 					},
 				},
@@ -36,7 +36,7 @@ func TestCheckRoundTrip(t *testing.T) {
 			`single <domain:check> command`,
 			&epp.EPP{
 				Body: &epp.Command{
-					Command: &epp.Check{
+					Action: &epp.Check{
 						Check: &domain.Check{
 							Names: []string{"example.com"},
 						},

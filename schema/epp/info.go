@@ -7,4 +7,4 @@ type Info struct {
 	// TODO: InfoType
 }
 
-func (Info) eppCommand() {}
+func (Info) eppAction() {}

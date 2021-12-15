@@ -7,4 +7,4 @@ type Renew struct {
 	// TODO: finish this.
 }
 
-func (Renew) eppCommand() {}
+func (Renew) eppAction() {}

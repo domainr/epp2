@@ -24,9 +24,3 @@ func (e *EPP) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 		})
 	})
 }
-
-// Body represents a valid EPP body element:
-// <hello>, <greeting>, <command>, and <response>.
-type Body interface {
-	eppBody()
-}

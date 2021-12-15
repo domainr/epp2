@@ -63,7 +63,7 @@ func TestResponseRoundTrip(t *testing.T) {
 						{
 							Code:    epp.ErrBillingFailure,
 							Message: epp.ErrBillingFailure.Message(),
-							ExtensionValues: []epp.ExtValue{
+							ExtensionValues: []epp.ExtensionValue{
 								{
 									Reason: epp.Message{Lang: "en", Value: "Command exceeds available balance"},
 								},

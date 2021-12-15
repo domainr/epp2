@@ -18,7 +18,7 @@ func TestLoginRoundTrip(t *testing.T) {
 	}{
 		{
 			`empty <login>`,
-			&epp.EPP{Body: &epp.Command{Command: &epp.Login{}}},
+			&epp.EPP{Body: &epp.Command{Action: &epp.Login{}}},
 			`<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"><command><login><clID></clID><pw></pw><options><version></version></options><svcs></svcs></login></command></epp>`,
 			false,
 		},
@@ -26,7 +26,7 @@ func TestLoginRoundTrip(t *testing.T) {
 			`simple <login>`,
 			&epp.EPP{
 				Body: &epp.Command{
-					Command: &epp.Login{
+					Action: &epp.Login{
 						ClientID: "user",
 						Password: "password",
 					},
@@ -39,7 +39,7 @@ func TestLoginRoundTrip(t *testing.T) {
 			`specify version 1.0`,
 			&epp.EPP{
 				Body: &epp.Command{
-					Command: &epp.Login{
+					Action: &epp.Login{
 						ClientID: "user",
 						Password: "password",
 						Options: epp.Options{
@@ -55,7 +55,7 @@ func TestLoginRoundTrip(t *testing.T) {
 			`specify lang=en`,
 			&epp.EPP{
 				Body: &epp.Command{
-					Command: &epp.Login{
+					Action: &epp.Login{
 						ClientID: "user",
 						Password: "password",
 						Options: epp.Options{
@@ -72,7 +72,7 @@ func TestLoginRoundTrip(t *testing.T) {
 			`change password`,
 			&epp.EPP{
 				Body: &epp.Command{
-					Command: &epp.Login{
+					Action: &epp.Login{
 						ClientID:    "user",
 						Password:    "password",
 						NewPassword: std.StringPointer("newpassword"),
@@ -90,7 +90,7 @@ func TestLoginRoundTrip(t *testing.T) {
 			`complex <login>`,
 			&epp.EPP{
 				Body: &epp.Command{
-					Command: &epp.Login{
+					Action: &epp.Login{
 						ClientID:    "user",
 						NewPassword: std.StringPointer("newpassword"),
 						Options: epp.Options{

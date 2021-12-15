@@ -7,4 +7,4 @@ type Transfer struct {
 	// TODO: finish this.
 }
 
-func (Transfer) eppCommand() {}
+func (Transfer) eppAction() {}

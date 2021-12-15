@@ -24,7 +24,7 @@ func TestCommandRoundTrip(t *testing.T) {
 			`empty <check> command`,
 			&epp.EPP{
 				Body: &epp.Command{
-					Command: &epp.Check{},
+					Action: &epp.Check{},
 				},
 			},
 			`<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"><command><check></check></command></epp>`,
@@ -34,7 +34,7 @@ func TestCommandRoundTrip(t *testing.T) {
 			`empty <create> command`,
 			&epp.EPP{
 				Body: &epp.Command{
-					Command: &epp.Create{},
+					Action: &epp.Create{},
 				},
 			},
 			`<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"><command><create></create></command></epp>`,
@@ -44,7 +44,7 @@ func TestCommandRoundTrip(t *testing.T) {
 			`empty <delete> command`,
 			&epp.EPP{
 				Body: &epp.Command{
-					Command: &epp.Delete{},
+					Action: &epp.Delete{},
 				},
 			},
 			`<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"><command><delete></delete></command></epp>`,
@@ -54,7 +54,7 @@ func TestCommandRoundTrip(t *testing.T) {
 			`empty <info> command`,
 			&epp.EPP{
 				Body: &epp.Command{
-					Command: &epp.Info{},
+					Action: &epp.Info{},
 				},
 			},
 			`<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"><command><info></info></command></epp>`,
@@ -64,7 +64,7 @@ func TestCommandRoundTrip(t *testing.T) {
 			`empty <login> command`,
 			&epp.EPP{
 				Body: &epp.Command{
-					Command: &epp.Login{},
+					Action: &epp.Login{},
 				},
 			},
 			`<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"><command><login><clID></clID><pw></pw><options><version></version></options><svcs></svcs></login></command></epp>`,
@@ -74,7 +74,7 @@ func TestCommandRoundTrip(t *testing.T) {
 			`empty <logout> command`,
 			&epp.EPP{
 				Body: &epp.Command{
-					Command: &epp.Logout{},
+					Action: &epp.Logout{},
 				},
 			},
 			`<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"><command><logout/></command></epp>`,
@@ -84,7 +84,7 @@ func TestCommandRoundTrip(t *testing.T) {
 			`empty <poll> command`,
 			&epp.EPP{
 				Body: &epp.Command{
-					Command: &epp.Poll{},
+					Action: &epp.Poll{},
 				},
 			},
 			`<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"><command><poll></poll></command></epp>`,
@@ -94,7 +94,7 @@ func TestCommandRoundTrip(t *testing.T) {
 			`empty <renew> command`,
 			&epp.EPP{
 				Body: &epp.Command{
-					Command: &epp.Renew{},
+					Action: &epp.Renew{},
 				},
 			},
 			`<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"><command><renew></renew></command></epp>`,
@@ -104,7 +104,7 @@ func TestCommandRoundTrip(t *testing.T) {
 			`empty <transfer> command`,
 			&epp.EPP{
 				Body: &epp.Command{
-					Command: &epp.Transfer{},
+					Action: &epp.Transfer{},
 				},
 			},
 			`<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"><command><transfer></transfer></command></epp>`,
@@ -114,7 +114,7 @@ func TestCommandRoundTrip(t *testing.T) {
 			`empty <update> command`,
 			&epp.EPP{
 				Body: &epp.Command{
-					Command: &epp.Update{},
+					Action: &epp.Update{},
 				},
 			},
 			`<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"><command><update></update></command></epp>`,

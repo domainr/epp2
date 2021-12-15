@@ -7,4 +7,4 @@ type Delete struct {
 	// TODO: finish this.
 }
 
-func (Delete) eppCommand() {}
+func (Delete) eppAction() {}

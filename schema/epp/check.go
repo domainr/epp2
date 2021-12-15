@@ -13,7 +13,7 @@ type Check struct {
 	Check   CheckType
 }
 
-func (Check) eppCommand() {}
+func (Check) eppAction() {}
 
 // UnmarshalXML implements the xml.Unmarshaler interface. It requires an
 // xml.Decoder with an associated schema.Factory to correctly decode EPP <check>
@@ -25,10 +25,4 @@ func (c *Check) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 		}
 		return nil
 	})
-}
-
-// CheckType is a child element of EPP <check>.
-// Concrete CheckType types implement this interface.
-type CheckType interface {
-	EPPCheck()
 }

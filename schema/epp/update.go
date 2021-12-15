@@ -7,4 +7,4 @@ type Update struct {
 	// TODO: finish this.
 }
 
-func (Update) eppCommand() {}
+func (Update) eppAction() {}

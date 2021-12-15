@@ -7,4 +7,4 @@ type Poll struct {
 	// TODO: finish this.
 }
 
-func (Poll) eppCommand() {}
+func (Poll) eppAction() {}
