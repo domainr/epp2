@@ -52,12 +52,6 @@ type Config struct {
 	// This value should typically be left nil. This will always be nil when
 	// read from a peer.
 	UnannouncedExtensions []string
-
-	// TransactionID, if not nil, returns unique values used for client or
-	// server transaction IDs. If nil, a sequential transaction ID with a
-	// random prefix will be used. The function must be safe to call from
-	// multiple goroutines.
-	TransactionID func() string
 }
 
 func configFromGreeting(g *epp.Greeting) Config {
