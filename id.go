@@ -7,10 +7,6 @@ import (
 	"sync/atomic"
 )
 
-type ID interface {
-	ID() string
-}
-
 type seqSource struct {
 	prefix string
 	n      uint64
