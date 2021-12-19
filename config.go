@@ -1,11 +1,12 @@
 package epp
 
 import (
+	"github.com/domainr/epp2/schema"
 	"github.com/domainr/epp2/schema/epp"
 )
 
-// Config describes an EPP client or server configuration, including EPP objects
-// and extensions used for a connection.
+// Config describes the configuration of an EPP client or server, including EPP
+// objects and extensions used for a connection.
 type Config struct {
 	// Supported EPP version(s). Typically this should not be set by either
 	// a client or server. If nil, this will default to []string{"1.0"}
@@ -52,20 +53,23 @@ type Config struct {
 	// This value should typically be left nil. This will always be nil when
 	// read from a peer.
 	UnannouncedExtensions []string
-}
 
-func configFromGreeting(g *epp.Greeting) Config {
-	c := Config{}
-	// TODO: should epp.Greeting have getter and setter methods to access deeply-nested data?
-	if g.ServiceMenu != nil {
-		c.Versions = copySlice(g.ServiceMenu.Versions)
-		c.Languages = copySlice(g.ServiceMenu.Languages)
-		c.Objects = copySlice(g.ServiceMenu.Objects)
-		if g.ServiceMenu.ServiceExtension != nil {
-			c.Extensions = copySlice(g.ServiceMenu.ServiceExtension.Extensions)
-		}
-	}
-	return c
+	// Schemas contains the Schema objects used to map object and extension
+	// namespaces to Go types.
+	//
+	// If nil or empty, reasonable defaults will be used.
+	Schemas []schema.Schema
+
+	// TransactionID, if not nil, returns unique values used for client or
+	// server transaction IDs. For clients, this generates command
+	// transaction IDs. For servers, this generates response transaction
+	// IDs.
+	//
+	// The function must be safe to call from multiple goroutines.
+	//
+	// If nil, a sequential transaction ID with a random prefix will be
+	// used.
+	TransactionID func() string
 }
 
 // Copy deep copy of c.
@@ -85,4 +89,29 @@ func copySlice(s []string) []string {
 	dst := make([]string, len(s))
 	copy(dst, s)
 	return dst
+}
+
+// ConfigForGreeting returns a client-centric Config sharing the mutual
+// capabilities announced in an epp.Greeting. If the Config or Greeting do not
+// share a mutual set of EPP versions, languages, and objects, it will return an
+// error. The resulting Config is suitable for creating EPP elements
+// transmittable to the server that sent the Greeting.
+//
+// TODO: implement this function.
+func ConfigForGreeting(cfg *Config, greeting *epp.Greeting) (*Config, error) {
+	return cfg, nil // TODO
+}
+
+// ConfigForLogin returns a server-centric Config sharing the mutual
+// capabilities announced in an epp.Login. If the Config or Login do not share a
+// mutual set of EPP versions, languages, and objects, it will return an error.
+// The resulting Config is suitable for creating EPP elements transmittable to
+// the client that generated the Login.
+//
+// The error returned may be an *epp.Result which can be transmitted back to an
+// EPP client in an epp.Response.
+//
+// TODO: implement this function.
+func ConfigForLogin(cfg *Config, login *epp.Login) (*Config, error) {
+	return cfg, nil // TODO
 }
