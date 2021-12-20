@@ -7,33 +7,50 @@ import (
 
 // Command represents an EPP client <command> as defined in RFC 5730.
 // See https://www.rfc-editor.org/rfc/rfc5730.html#section-2.5.
-type Command struct {
-	XMLName struct{} `xml:"urn:ietf:params:xml:ns:epp-1.0 command"`
-
-	// Action is an element whose tag corresponds to one of the valid EPP
-	// commands described in RFC 5730. The command element MAY contain
+type Command interface {
+	// Action returns an element whose tag corresponds to one of the valid EPP
+	// command types described in RFC 5730. The command element MAY contain
 	// either protocol-specified or object-specified child elements.
-	Action Action
+	Action() Action
 
 	// Extensions is an OPTIONAL <extension> element that MAY be used for
-	// server- defined command extensions.
-	Extensions []Extension `xml:"extension,omitempty"`
+	// server-defined command extensions.
+	Extensions() []Extension
 
-	// ClientTransactionID is an OPTIONAL <clTRID> (client transaction
+	// WithExtensions returns the Command with the additional extensions.
+	WithExtensions(...Extension) Command
+
+	// TransactionID is an OPTIONAL <clTRID> (client transaction
 	// identifier) element that MAY be used to uniquely identify the command
 	// to the client. Clients are responsible for maintaining their own
 	// transaction identifier space to ensure uniqueness.
-	ClientTransactionID string `xml:"clTRID,omitempty"`
+	TransactionID() string
+
+	// WithTransactionID returns the Command with the client transaction ID set.
+	WithTransactionID(string) Command
 }
 
-func (Command) eppBody() {}
+type command struct {
+	XMLName       struct{} `xml:"urn:ietf:params:xml:ns:epp-1.0 command"`
+	action        Action
+	extensions    []Extension `xml:"extension,omitempty"`
+	transactionID string      `xml:"clTRID,omitempty"`
+}
+
+func NewCommand(action Action, extensions ...Extension) Command {
+	return &command{
+		action: action,
+	}.WithExtensions(extensions)
+}
+
+func (command) eppBody() {}
 
 // UnmarshalXML implements the xml.Unmarshaler interface.
 // It maps known EPP commands to their corresponding Go type.
 // It requires an xml.Decoder with an associated schema.Factory to
 // correctly decode EPP <command> sub-elements.
-func (c *Command) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
-	type T Command
+func (c *command) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
+	type T command
 	var v struct {
 		*T
 		V actionWrapper `xml:",any"`

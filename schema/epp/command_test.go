@@ -16,107 +16,107 @@ func TestCommandRoundTrip(t *testing.T) {
 	}{
 		{
 			`empty <command>`,
-			&epp.EPP{Body: &epp.Command{}},
+			epp.New(&epp.Command{}),
 			`<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"><command></command></epp>`,
 			false,
 		},
 		{
 			`empty <check> command`,
-			&epp.EPP{
-				Body: &epp.Command{
+			epp.New(
+				&epp.Command{
 					Action: &epp.Check{},
 				},
-			},
+			),
 			`<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"><command><check></check></command></epp>`,
 			false,
 		},
 		{
 			`empty <create> command`,
-			&epp.EPP{
-				Body: &epp.Command{
+			epp.New(
+				&epp.Command{
 					Action: &epp.Create{},
 				},
-			},
+			),
 			`<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"><command><create></create></command></epp>`,
 			false,
 		},
 		{
 			`empty <delete> command`,
-			&epp.EPP{
-				Body: &epp.Command{
+			epp.New(
+				&epp.Command{
 					Action: &epp.Delete{},
 				},
-			},
+			),
 			`<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"><command><delete></delete></command></epp>`,
 			false,
 		},
 		{
 			`empty <info> command`,
-			&epp.EPP{
-				Body: &epp.Command{
+			epp.New(
+				&epp.Command{
 					Action: &epp.Info{},
 				},
-			},
+			),
 			`<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"><command><info></info></command></epp>`,
 			false,
 		},
 		{
 			`empty <login> command`,
-			&epp.EPP{
-				Body: &epp.Command{
+			epp.New(
+				&epp.Command{
 					Action: &epp.Login{},
 				},
-			},
+			),
 			`<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"><command><login><clID></clID><pw></pw><options><version></version></options><svcs></svcs></login></command></epp>`,
 			false,
 		},
 		{
 			`empty <logout> command`,
-			&epp.EPP{
-				Body: &epp.Command{
+			epp.New(
+				&epp.Command{
 					Action: &epp.Logout{},
 				},
-			},
+			),
 			`<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"><command><logout/></command></epp>`,
 			false,
 		},
 		{
 			`empty <poll> command`,
-			&epp.EPP{
-				Body: &epp.Command{
+			epp.New(
+				&epp.Command{
 					Action: &epp.Poll{},
 				},
-			},
+			),
 			`<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"><command><poll></poll></command></epp>`,
 			false,
 		},
 		{
 			`empty <renew> command`,
-			&epp.EPP{
-				Body: &epp.Command{
+			epp.New(
+				&epp.Command{
 					Action: &epp.Renew{},
 				},
-			},
+			),
 			`<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"><command><renew></renew></command></epp>`,
 			false,
 		},
 		{
 			`empty <transfer> command`,
-			&epp.EPP{
-				Body: &epp.Command{
+			epp.New(
+				&epp.Command{
 					Action: &epp.Transfer{},
 				},
-			},
+			),
 			`<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"><command><transfer></transfer></command></epp>`,
 			false,
 		},
 		{
 			`empty <update> command`,
-			&epp.EPP{
-				Body: &epp.Command{
+			epp.New(
+				&epp.Command{
 					Action: &epp.Update{},
 				},
-			},
+			),
 			`<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"><command><update></update></command></epp>`,
 			false,
 		},

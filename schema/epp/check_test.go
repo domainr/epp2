@@ -22,27 +22,27 @@ func TestCheckRoundTrip(t *testing.T) {
 	}{
 		{
 			`empty <domain:check> command`,
-			&epp.EPP{
-				Body: &epp.Command{
+			epp.New(
+				&epp.Command{
 					Action: &epp.Check{
 						Check: &domain.Check{},
 					},
 				},
-			},
+			),
 			`<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"><command><check><domain:check xmlns:domain="urn:ietf:params:xml:ns:domain-1.0"></domain:check></check></command></epp>`,
 			false,
 		},
 		{
 			`single <domain:check> command`,
-			&epp.EPP{
-				Body: &epp.Command{
+			epp.New(
+				&epp.Command{
 					Action: &epp.Check{
 						Check: &domain.Check{
 							Names: []string{"example.com"},
 						},
 					},
 				},
-			},
+			),
 			`<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"><command><check><domain:check xmlns:domain="urn:ietf:params:xml:ns:domain-1.0"><domain:name>example.com</domain:name></domain:check></check></command></epp>`,
 			false,
 		},

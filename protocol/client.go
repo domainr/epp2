@@ -201,7 +201,7 @@ func (c *client) Greeting(ctx context.Context) (*epp.Greeting, error) {
 // writeEPP writes body to the underlying Transport.
 // Writes are synchronized, so it is safe to call this from multiple goroutines.
 func (c *client) writeEPP(body epp.Body) error {
-	x, err := xml.Marshal(epp.EPP{Body: body})
+	x, err := xml.Marshal(epp.New(body))
 	if err != nil {
 		return err
 	}

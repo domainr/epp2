@@ -18,27 +18,27 @@ func TestLoginRoundTrip(t *testing.T) {
 	}{
 		{
 			`empty <login>`,
-			&epp.EPP{Body: &epp.Command{Action: &epp.Login{}}},
+			epp.New(&epp.Command{Action: &epp.Login{}}),
 			`<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"><command><login><clID></clID><pw></pw><options><version></version></options><svcs></svcs></login></command></epp>`,
 			false,
 		},
 		{
 			`simple <login>`,
-			&epp.EPP{
-				Body: &epp.Command{
+			epp.New(
+				&epp.Command{
 					Action: &epp.Login{
 						ClientID: "user",
 						Password: "password",
 					},
 				},
-			},
+			),
 			`<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"><command><login><clID>user</clID><pw>password</pw><options><version></version></options><svcs></svcs></login></command></epp>`,
 			false,
 		},
 		{
 			`specify version 1.0`,
-			&epp.EPP{
-				Body: &epp.Command{
+			epp.New(
+				&epp.Command{
 					Action: &epp.Login{
 						ClientID: "user",
 						Password: "password",
@@ -47,14 +47,14 @@ func TestLoginRoundTrip(t *testing.T) {
 						},
 					},
 				},
-			},
+			),
 			`<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"><command><login><clID>user</clID><pw>password</pw><options><version>1.0</version></options><svcs></svcs></login></command></epp>`,
 			false,
 		},
 		{
 			`specify lang=en`,
-			&epp.EPP{
-				Body: &epp.Command{
+			epp.New(
+				&epp.Command{
 					Action: &epp.Login{
 						ClientID: "user",
 						Password: "password",
@@ -64,14 +64,14 @@ func TestLoginRoundTrip(t *testing.T) {
 						},
 					},
 				},
-			},
+			),
 			`<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"><command><login><clID>user</clID><pw>password</pw><options><version>1.0</version><lang>en</lang></options><svcs></svcs></login></command></epp>`,
 			false,
 		},
 		{
 			`change password`,
-			&epp.EPP{
-				Body: &epp.Command{
+			epp.New(
+				&epp.Command{
 					Action: &epp.Login{
 						ClientID:    "user",
 						Password:    "password",
@@ -82,14 +82,14 @@ func TestLoginRoundTrip(t *testing.T) {
 						},
 					},
 				},
-			},
+			),
 			`<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"><command><login><clID>user</clID><pw>password</pw><newPW>newpassword</newPW><options><version>1.0</version><lang>en</lang></options><svcs></svcs></login></command></epp>`,
 			false,
 		},
 		{
 			`complex <login>`,
-			&epp.EPP{
-				Body: &epp.Command{
+			epp.New(
+				&epp.Command{
 					Action: &epp.Login{
 						ClientID:    "user",
 						NewPassword: std.StringPointer("newpassword"),
@@ -109,7 +109,7 @@ func TestLoginRoundTrip(t *testing.T) {
 						},
 					},
 				},
-			},
+			),
 			`<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"><command><login><clID>user</clID><pw></pw><newPW>newpassword</newPW><options><version>1.0</version><lang>en</lang></options><svcs><objURI>urn:ietf:params:xml:ns:domain-1.0</objURI><objURI>urn:ietf:params:xml:ns:contact-1.0</objURI><objURI>urn:ietf:params:xml:ns:host-1.0</objURI><svcExtension><extURI>urn:ietf:params:xml:ns:epp:fee-0.8</extURI><extURI>urn:ietf:params:xml:ns:epp:fee-1.0</extURI><extURI>urn:ietf:params:xml:ns:idn-1.0</extURI></svcExtension></svcs></login></command></epp>`,
 			false,
 		},

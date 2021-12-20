@@ -20,25 +20,25 @@ func TestGreetingRoundTrip(t *testing.T) {
 	}{
 		{
 			`empty <greeting>`,
-			&epp.EPP{Body: &epp.Greeting{}},
+			epp.New(&epp.Greeting{}),
 			`<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"><greeting></greeting></epp>`,
 			false,
 		},
 		{
 			`simple <greeting>`,
-			&epp.EPP{
-				Body: &epp.Greeting{
+			epp.New(
+				&epp.Greeting{
 					ServerName: "Test EPP Server",
 					ServerDate: std.ParseTime("2000-01-01T00:00:00Z").Pointer(),
 				},
-			},
+			),
 			`<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"><greeting><svID>Test EPP Server</svID><svDate>2000-01-01T00:00:00Z</svDate></greeting></epp>`,
 			false,
 		},
 		{
 			`complex <greeting>`,
-			&epp.EPP{
-				Body: &epp.Greeting{
+			epp.New(
+				&epp.Greeting{
 					ServerName: "Test EPP Server",
 					ServerDate: std.ParseTime("2000-01-01T00:00:00Z").Pointer(),
 					ServiceMenu: &epp.ServiceMenu{
@@ -48,14 +48,14 @@ func TestGreetingRoundTrip(t *testing.T) {
 					},
 					DCP: &epp.DCP{},
 				},
-			},
+			),
 			`<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"><greeting><svID>Test EPP Server</svID><svDate>2000-01-01T00:00:00Z</svDate><svcMenu><version>1.0</version><lang>en</lang><lang>fr</lang><objURI>urn:ietf:params:xml:ns:contact-1.0</objURI><objURI>urn:ietf:params:xml:ns:domain-1.0</objURI><objURI>urn:ietf:params:xml:ns:host-1.0</objURI></svcMenu><dcp><access></access></dcp></greeting></epp>`,
 			false,
 		},
 		{
 			`complex <greeting> with complex <dcp>`,
-			&epp.EPP{
-				Body: &epp.Greeting{
+			epp.New(
+				&epp.Greeting{
 					ServerName: "Test EPP Server",
 					ServerDate: std.ParseTime("2000-01-01T00:00:00Z").Pointer(),
 					ServiceMenu: &epp.ServiceMenu{
@@ -80,28 +80,28 @@ func TestGreetingRoundTrip(t *testing.T) {
 						},
 					},
 				},
-			},
+			),
 			`<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"><greeting><svID>Test EPP Server</svID><svDate>2000-01-01T00:00:00Z</svDate><svcMenu><version>1.0</version><lang>en</lang><lang>fr</lang><objURI>urn:ietf:params:xml:ns:contact-1.0</objURI><objURI>urn:ietf:params:xml:ns:domain-1.0</objURI><objURI>urn:ietf:params:xml:ns:host-1.0</objURI></svcMenu><dcp><access><personalAndOther/></access><statement><purpose><admin/></purpose><recipient><ours><recDesc>Domainr</recDesc></ours><public/></recipient></statement><statement><purpose><contact/><other/></purpose><recipient><other/><ours/><public/></recipient></statement><expiry><relative>P365DT5H49M12S</relative></expiry></dcp></greeting></epp>`,
 			false,
 		},
 		{
 			`<greeting> with <dcp> with absolute expiry`,
-			&epp.EPP{
-				Body: &epp.Greeting{
+			epp.New(
+				&epp.Greeting{
 					DCP: &epp.DCP{
 						Expiry: &epp.Expiry{
 							Absolute: std.ParseTime("2000-01-01T00:00:00Z").Pointer(),
 						},
 					},
 				},
-			},
+			),
 			`<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"><greeting><dcp><access></access><expiry><absolute>2000-01-01T00:00:00Z</absolute></expiry></dcp></greeting></epp>`,
 			false,
 		},
 		{
 			`complex <greeting> with extensions`,
-			&epp.EPP{
-				Body: &epp.Greeting{
+			epp.New(
+				&epp.Greeting{
 					ServerName: "Test EPP Server",
 					ServerDate: std.ParseTime("2000-01-01T00:00:00Z").Pointer(),
 					ServiceMenu: &epp.ServiceMenu{
@@ -119,7 +119,7 @@ func TestGreetingRoundTrip(t *testing.T) {
 						Access: epp.AccessNull,
 					},
 				},
-			},
+			),
 			`<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"><greeting><svID>Test EPP Server</svID><svDate>2000-01-01T00:00:00Z</svDate><svcMenu><version>1.0</version><lang>en</lang><lang>fr</lang><objURI>urn:ietf:params:xml:ns:contact-1.0</objURI><objURI>urn:ietf:params:xml:ns:domain-1.0</objURI><objURI>urn:ietf:params:xml:ns:host-1.0</objURI><svcExtension><extURI>urn:ietf:params:xml:ns:fee-0.8</extURI><extURI>urn:ietf:params:xml:ns:epp:fee-1.0</extURI></svcExtension></svcMenu><dcp><access><null/></access></dcp></greeting></epp>`,
 			false,
 		},

@@ -1,5 +1,7 @@
 package epp
 
+import "github.com/domainr/epp2/internal/xml"
+
 // Body represents a valid EPP body element.
 //
 // Standard EPP body elements include <hello>, <greeting>, <command>, and
@@ -13,6 +15,10 @@ type Body interface {
 // An Action is serialized to XML as the first child of a <command> element.
 type Action interface {
 	eppAction()
+}
+
+type NamedCommand interface {
+	EPPCommandName() xml.Name
 }
 
 // CheckType is a child element of EPP <check>.
