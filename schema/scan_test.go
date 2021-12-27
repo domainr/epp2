@@ -14,7 +14,7 @@ type Login struct {
 	NewPassword *string
 }
 
-func (l *Login) ScanStartElement(start xml.StartElement) (interface{}, error) {
+func (l *Login) ScanStartElement(r xml.TokenReader, start xml.StartElement) (interface{}, error) {
 	fmt.Println(start.Name.Local)
 	switch start.Name.Local {
 	case "login":
@@ -26,6 +26,38 @@ func (l *Login) ScanStartElement(start xml.StartElement) (interface{}, error) {
 	case "newPW":
 		l.NewPassword = new(string)
 		return l.NewPassword, nil
+	}
+	return nil, nil
+}
+
+type Outer struct {
+	inner Inner
+}
+
+func (o *Outer) ScanStartElement(r xml.TokenReader, start xml.StartElement) (interface{}, error) {
+	fmt.Println(start.Name.Local)
+	switch start.Name.Local {
+	case "outer":
+		return o, nil
+	case "inner":
+		return &o.inner, nil
+	}
+	return nil, nil
+}
+
+type Inner struct {
+	v string
+}
+
+type Outer2 Outer
+
+func (o *Outer2) ScanStartElement(r xml.TokenReader, start xml.StartElement) (interface{}, error) {
+	fmt.Println(start.Name.Local)
+	switch start.Name.Local {
+	case "outer":
+		return o, nil
+	case "inner":
+		return nil, Scan(r, &o.inner)
 	}
 	return nil, nil
 }
@@ -65,6 +97,30 @@ func TestScan(t *testing.T) {
 			`login with empty child tags`,
 			`<login><clID></clID><pw></pw></login>`,
 			&Login{},
+			false,
+		},
+		{
+			`empty outer`,
+			`<outer></outer>`,
+			&Outer{},
+			false,
+		},
+		{
+			`outer with inner`,
+			`<outer><inner></inner></outer>`,
+			&Outer{},
+			false,
+		},
+		{
+			`empty outer (recursive)`,
+			`<outer></outer>`,
+			&Outer2{},
+			false,
+		},
+		{
+			`outer (recursive) with inner`,
+			`<outer><inner></inner></outer>`,
+			&Outer2{},
 			false,
 		},
 	}

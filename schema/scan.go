@@ -17,34 +17,40 @@ func Scan(r xml.TokenReader, v interface{}) error {
 
 	for {
 		t, terr := r.Token()
-		switch t := t.(type) {
-		case xml.StartElement:
-			stack = append(stack, frame{t.Name, v})
+
+		// Look for a start element first.
+		if start, ok := t.(xml.StartElement); ok {
+			stack = append(stack, frame{start.Name, v})
 			if s, ok := v.(StartElementScanner); ok {
-				v2, err := s.ScanStartElement(t)
-				if err != nil {
+				v2, err := s.ScanStartElement(r, start)
+				if end, ok := err.(EndElementError); ok {
+					t = xml.EndElement(end)
+				} else if err != nil {
 					return err
 				}
 				v = v2
 			}
+		}
 
-		case xml.EndElement:
+		// An unbalanced end element might have been returned from ScanStartElement above.
+		if end, ok := t.(xml.EndElement); ok {
+			if len(stack) == 0 {
+				return EndElementError(end)
+			}
+			frame := stack[len(stack)-1]
+			if frame.name != end.Name {
+				return fmt.Errorf("unexpected end tag %s, want %s", end.Name.Local, frame.name.Local)
+			}
 			if s, ok := v.(EndElementScanner); ok {
-				err := s.ScanEndElement(t)
+				err := s.ScanEndElement(r, end)
 				if err != nil {
 					return err
 				}
 			}
-			if len(stack) == 0 {
-				return fmt.Errorf("unexpected end tag %s", t.Name.Local)
-			}
-			frame := stack[len(stack)-1]
-			if frame.name != t.Name {
-				return fmt.Errorf("unexpected end tag %s, want %s", t.Name.Local, frame.name.Local)
-			}
 			stack = stack[:len(stack)-1]
 			v = frame.parent
 		}
+
 		if terr == io.EOF {
 			return nil
 		} else if terr != nil {
@@ -54,9 +60,15 @@ func Scan(r xml.TokenReader, v interface{}) error {
 }
 
 type StartElementScanner interface {
-	ScanStartElement(xml.StartElement) (interface{}, error)
+	ScanStartElement(xml.TokenReader, xml.StartElement) (interface{}, error)
 }
 
 type EndElementScanner interface {
-	ScanEndElement(xml.EndElement) error
+	ScanEndElement(xml.TokenReader, xml.EndElement) error
+}
+
+type EndElementError xml.EndElement
+
+func (e EndElementError) Error() string {
+	return "unbalanced end tag: " + e.Name.Local
 }
