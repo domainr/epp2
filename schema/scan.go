@@ -22,13 +22,12 @@ func Scan(r xml.TokenReader, v interface{}) error {
 		if start, ok := t.(xml.StartElement); ok {
 			stack = append(stack, frame{start.Name, v})
 			if s, ok := v.(StartElementScanner); ok {
-				v2, err := s.ScanStartElement(r, start)
+				err := s.ScanStartElement(r, start)
 				if end, ok := err.(EndElementError); ok {
 					t = xml.EndElement(end)
 				} else if err != nil {
 					return err
 				}
-				v = v2
 			}
 		}
 
@@ -60,7 +59,7 @@ func Scan(r xml.TokenReader, v interface{}) error {
 }
 
 type StartElementScanner interface {
-	ScanStartElement(xml.TokenReader, xml.StartElement) (interface{}, error)
+	ScanStartElement(xml.TokenReader, xml.StartElement) error
 }
 
 type EndElementScanner interface {
