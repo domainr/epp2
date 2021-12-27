@@ -8,25 +8,22 @@ import (
 )
 
 func Scan(r xml.TokenReader, v interface{}) error {
-	type frame struct {
-		name   xml.Name
-		parent interface{}
-	}
-
-	var stack []frame
+	var stack []xml.Name
 
 	for {
 		t, terr := r.Token()
 
 		// Look for a start element first.
 		if start, ok := t.(xml.StartElement); ok {
-			stack = append(stack, frame{start.Name, v})
-			if s, ok := v.(StartElementScanner); ok {
-				err := s.ScanStartElement(r, start)
-				if end, ok := err.(EndElementError); ok {
-					t = xml.EndElement(end)
-				} else if err != nil {
-					return err
+			stack = append(stack, start.Name)
+			if len(stack) == 1 {
+				if s, ok := v.(StartElementScanner); ok {
+					err := s.ScanStartElement(r, start)
+					if end, ok := err.(EndElementError); ok {
+						t = xml.EndElement(end)
+					} else if err != nil {
+						return err
+					}
 				}
 			}
 		}
@@ -36,18 +33,19 @@ func Scan(r xml.TokenReader, v interface{}) error {
 			if len(stack) == 0 {
 				return EndElementError(end)
 			}
-			frame := stack[len(stack)-1]
-			if frame.name != end.Name {
-				return fmt.Errorf("unexpected end tag %s, want %s", end.Name.Local, frame.name.Local)
+			name := stack[len(stack)-1]
+			if name != end.Name {
+				return fmt.Errorf("unexpected end tag %s, want %s", end.Name.Local, name.Local)
 			}
-			if s, ok := v.(EndElementScanner); ok {
-				err := s.ScanEndElement(r, end)
-				if err != nil {
-					return err
+			if len(stack) == 1 {
+				if s, ok := v.(EndElementScanner); ok {
+					err := s.ScanEndElement(r, end)
+					if err != nil {
+						return err
+					}
 				}
 			}
 			stack = stack[:len(stack)-1]
-			v = frame.parent
 		}
 
 		if terr == io.EOF {

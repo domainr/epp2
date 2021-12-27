@@ -9,9 +9,9 @@ import (
 )
 
 type Login struct {
-	Username    string
-	Password    string
-	NewPassword *string
+	user    string
+	pass    string
+	newPass *string
 }
 
 func (l *Login) ScanStartElement(r xml.TokenReader, start xml.StartElement) error {
@@ -20,12 +20,12 @@ func (l *Login) ScanStartElement(r xml.TokenReader, start xml.StartElement) erro
 	case "login":
 		return Scan(r, l)
 	case "clID":
-		return Scan(r, &l.Username)
+		return Scan(r, &l.user)
 	case "pw":
-		return Scan(r, &l.Password)
+		return Scan(r, &l.pass)
 	case "newPW":
-		l.NewPassword = new(string)
-		return Scan(r, l.NewPassword)
+		l.newPass = new(string)
+		return Scan(r, l.newPass)
 	}
 	return nil
 }
