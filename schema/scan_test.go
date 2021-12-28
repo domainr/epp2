@@ -14,18 +14,18 @@ type Login struct {
 	newPass *string
 }
 
-func (l *Login) ScanStartElement(r xml.TokenReader, start xml.StartElement) error {
+func (l *Login) ScanStartElement(s Scanner, start xml.StartElement) error {
 	fmt.Println(start.Name.Local)
 	switch start.Name.Local {
 	case "login":
-		return Scan(r, l)
+		return s.Scan(l)
 	case "clID":
-		return Scan(r, &l.user)
+		return s.Scan(&l.user)
 	case "pw":
-		return Scan(r, &l.pass)
+		return s.Scan(&l.pass)
 	case "newPW":
 		l.newPass = new(string)
-		return Scan(r, l.newPass)
+		return s.Scan(l.newPass)
 	}
 	return nil
 }
@@ -34,13 +34,13 @@ type Outer struct {
 	inner Inner
 }
 
-func (o *Outer) ScanStartElement(r xml.TokenReader, start xml.StartElement) error {
+func (o *Outer) ScanStartElement(s Scanner, start xml.StartElement) error {
 	fmt.Println(start.Name.Local)
 	switch start.Name.Local {
 	case "outer":
-		return Scan(r, o)
+		return s.Scan(o)
 	case "inner":
-		return Scan(r, &o.inner)
+		return s.Scan(&o.inner)
 	}
 	return nil
 }
