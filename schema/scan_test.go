@@ -2,6 +2,7 @@ package schema
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -14,39 +15,35 @@ type Login struct {
 	newPass *string
 }
 
-func (l *Login) ScanStartElement(s Scanner, start xml.StartElement) error {
+func (l *Login) ScanStartElement(start xml.StartElement) (interface{}, error) {
 	fmt.Println(start.Name.Local)
 	switch start.Name.Local {
 	case "login":
-		return s.Scan(l)
+		return l, nil
 	case "clID":
-		return s.Scan(&l.user)
+		return &l.user, nil
 	case "pw":
-		return s.Scan(&l.pass)
+		return &l.pass, nil
 	case "newPW":
 		l.newPass = new(string)
-		return s.Scan(l.newPass)
+		return l.newPass, nil
 	}
-	return nil
+	return nil, nil
 }
 
 type Outer struct {
-	inner Inner
+	inner string
 }
 
-func (o *Outer) ScanStartElement(s Scanner, start xml.StartElement) error {
+func (o *Outer) ScanStartElement(start xml.StartElement) (interface{}, error) {
 	fmt.Println(start.Name.Local)
 	switch start.Name.Local {
 	case "outer":
-		return s.Scan(o)
+		return o, nil
 	case "inner":
-		return s.Scan(&o.inner)
+		return &o.inner, nil
 	}
-	return nil
-}
-
-type Inner struct {
-	v string
+	return nil, nil
 }
 
 func TestScan(t *testing.T) {
@@ -54,11 +51,13 @@ func TestScan(t *testing.T) {
 		name    string
 		xml     string
 		v       interface{}
+		want    interface{}
 		wantErr bool
 	}{
 		{
 			`nil`,
 			``,
+			nil,
 			nil,
 			false,
 		},
@@ -66,11 +65,13 @@ func TestScan(t *testing.T) {
 			`unbalanced end tag`,
 			`</a>`,
 			nil,
+			nil,
 			true,
 		},
 		{
 			`incorrect end tag`,
 			`<a></b>`,
+			nil,
 			nil,
 			true,
 		},
@@ -78,11 +79,13 @@ func TestScan(t *testing.T) {
 			`empty login`,
 			`<login></login>`,
 			&Login{},
+			&Login{},
 			false,
 		},
 		{
 			`login with empty child tags`,
 			`<login><clID></clID><pw></pw></login>`,
+			&Login{},
 			&Login{},
 			false,
 		},
@@ -90,12 +93,21 @@ func TestScan(t *testing.T) {
 			`empty outer`,
 			`<outer></outer>`,
 			&Outer{},
+			&Outer{},
 			false,
 		},
 		{
 			`outer with inner`,
 			`<outer><inner></inner></outer>`,
 			&Outer{},
+			&Outer{},
+			false,
+		},
+		{
+			`outer with inner with value`,
+			`<outer><inner>hello world</inner></outer>`,
+			&Outer{},
+			&Outer{"hello world"},
 			false,
 		},
 	}
@@ -107,6 +119,10 @@ func TestScan(t *testing.T) {
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Scan error = %v, wantErr %v", err, tt.wantErr)
 				return
+			}
+
+			if !reflect.DeepEqual(tt.want, tt.v) {
+				t.Errorf("Scan()\nGot:  %#v\nWant: %#v", tt.v, tt.want)
 			}
 		})
 	}
