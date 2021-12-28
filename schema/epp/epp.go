@@ -24,7 +24,3 @@ func (e *EPP) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 		})
 	})
 }
-
-func (e *EPP) DecodeElement(d schema.Decoder, start xml.StartElement) error {
-
-}
