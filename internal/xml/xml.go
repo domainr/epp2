@@ -5,11 +5,12 @@ package xml
 
 import "github.com/nbio/xml"
 
-type Token = xml.Token
-type Attr = xml.Attr
 type Name = xml.Name
+type Attr = xml.Attr
+type Token = xml.Token
 type StartElement = xml.StartElement
 type EndElement = xml.EndElement
+type CharData = xml.CharData
 type Encoder = xml.Encoder
 type Decoder = xml.Decoder
 type TokenReader = xml.TokenReader
