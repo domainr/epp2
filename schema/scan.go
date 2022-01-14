@@ -12,13 +12,12 @@ import (
 
 // ScanFor scans TokenReader r for an XML tag matching name.
 // It will then scan the contents of that tag into v.
-// If the first tag encountered does not match name, it returns an error.
 func ScanFor(r xml.TokenReader, name xml.Name, v interface{}) error {
 	return Scan(r, ElementScannerFunc(func(e xml.StartElement) (interface{}, error) {
-		if e.Name != name {
-			return nil, fmt.Errorf("unexpected start tag %s, want %s", e.Name.Local, name.Local)
+		if e.Name == name {
+			return v, nil
 		}
-		return v, nil
+		return nil, nil
 	}))
 }
 

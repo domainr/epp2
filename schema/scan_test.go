@@ -101,6 +101,13 @@ func TestScanFor(t *testing.T) {
 		wantErr bool
 	}{
 		{
+			`wrong tag`,
+			`<foo></foo>`,
+			"", "bar",
+			nil,
+			false,
+		},
+		{
 			`empty login`,
 			`<login></login>`,
 			"", "login",
