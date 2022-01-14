@@ -10,8 +10,9 @@ import (
 	"github.com/domainr/epp2/internal/xml"
 )
 
-func Scan(r xml.TokenReader, v interface{}) error {
+func Scan(r xml.TokenReader, v interface{}) (interface{}, error) {
 	v = scanInterface(v)
+	var root interface{}
 	var err error
 
 	var charData xml.CharData
@@ -38,42 +39,41 @@ func Scan(r xml.TokenReader, v interface{}) error {
 			if err == io.EOF {
 				err = nil
 			}
-			return err
+			return root, err
 		}
 
 		// Look for a start element first.
 		if start, ok := t.(xml.StartElement); ok {
 			name = &start.Name
-			var v2 interface{}
-			if s, ok := v.(StartElementScanner); ok {
-				v2, err = s.ScanStartElement(start)
+			if s, ok := v.(ElementScanner); ok {
+				root, err = s.ScanElement(start)
 				if err != nil {
-					return err
+					return root, err
 				}
 			}
-			err = Scan(r, v2)
+			_, err = Scan(r, root)
 			if end, ok := err.(EndElementError); ok {
 				t = xml.EndElement(end)
 			} else if err != nil {
-				return err
+				return root, err
 			}
 		}
 
-		// An unbalanced end element might have been returned from ScanStartElement above.
+		// An unbalanced end element might have been returned from Scan above.
 		if end, ok := t.(xml.EndElement); ok {
 			if name == nil {
-				return EndElementError(end)
+				return root, EndElementError(end)
 			}
 			if end.Name != *name {
-				return fmt.Errorf("unexpected end tag %s, want %s", end.Name.Local, name.Local)
+				return root, fmt.Errorf("unexpected end tag %s, want %s", end.Name.Local, name.Local)
 			}
 			name = nil
-			if s, ok := v.(EndElementScanner); ok {
-				err = s.ScanEndElement(end)
-				if err != nil {
-					return err
-				}
-			}
+			// if s, ok := v.(EndElementScanner); ok {
+			// 	err = s.ScanEndElement(end)
+			// 	if err != nil {
+			// 		return err
+			// 	}
+			// }
 			continue
 		}
 
@@ -87,12 +87,31 @@ func Scan(r xml.TokenReader, v interface{}) error {
 	}
 }
 
-type StartElementScanner interface {
-	ScanStartElement(xml.StartElement) (interface{}, error)
+type ElementScanner interface {
+	ScanElement(xml.StartElement) (interface{}, error)
 }
 
-type EndElementScanner interface {
-	ScanEndElement(xml.EndElement) error
+type AttrScanner interface {
+	ScanAttr(xml.Attr) (interface{}, error)
+}
+
+type CharDataScanner interface {
+	ScanCharData(xml.CharData) error
+}
+
+type ElementScannerFunc func(xml.StartElement) (interface{}, error)
+
+func (f ElementScannerFunc) ScanElement(e xml.StartElement) (interface{}, error) {
+	return f(e)
+}
+
+func ScanFor(name xml.Name, v interface{}) ElementScanner {
+	return ElementScannerFunc(func(e xml.StartElement) (interface{}, error) {
+		if e.Name == name {
+			return v, nil
+		}
+		return nil, nil
+	})
 }
 
 type EndElementError xml.EndElement

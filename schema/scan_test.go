@@ -15,11 +15,9 @@ type Login struct {
 	newPass *string
 }
 
-func (l *Login) ScanStartElement(start xml.StartElement) (interface{}, error) {
+func (l *Login) ScanElement(start xml.StartElement) (interface{}, error) {
 	fmt.Println(start.Name.Local)
 	switch start.Name.Local {
-	case "login":
-		return l, nil
 	case "clID":
 		return &l.user, nil
 	case "pw":
@@ -35,11 +33,9 @@ type Outer struct {
 	inner string
 }
 
-func (o *Outer) ScanStartElement(start xml.StartElement) (interface{}, error) {
+func (o *Outer) ScanElement(start xml.StartElement) (interface{}, error) {
 	fmt.Println(start.Name.Local)
 	switch start.Name.Local {
-	case "outer":
-		return o, nil
 	case "inner":
 		return &o.inner, nil
 	}
@@ -78,35 +74,35 @@ func TestScan(t *testing.T) {
 		{
 			`empty login`,
 			`<login></login>`,
-			&Login{},
+			ScanFor(xml.Name{Local: "login"}, &Login{}),
 			&Login{},
 			false,
 		},
 		{
 			`login with empty child tags`,
 			`<login><clID></clID><pw></pw></login>`,
-			&Login{},
+			ScanFor(xml.Name{Local: "login"}, &Login{}),
 			&Login{},
 			false,
 		},
 		{
 			`empty outer`,
 			`<outer></outer>`,
-			&Outer{},
+			ScanFor(xml.Name{Local: "outer"}, &Outer{}),
 			&Outer{},
 			false,
 		},
 		{
 			`outer with inner`,
 			`<outer><inner></inner></outer>`,
-			&Outer{},
+			ScanFor(xml.Name{Local: "outer"}, &Outer{}),
 			&Outer{},
 			false,
 		},
 		{
 			`outer with inner with value`,
 			`<outer><inner>hello world</inner></outer>`,
-			&Outer{},
+			ScanFor(xml.Name{Local: "outer"}, &Outer{}),
 			&Outer{"hello world"},
 			false,
 		},
@@ -115,14 +111,14 @@ func TestScan(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			d := xml.NewDecoder(strings.NewReader(tt.xml))
-			err := Scan(d, tt.v)
+			got, err := Scan(d, tt.v)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Scan error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 
-			if !reflect.DeepEqual(tt.want, tt.v) {
-				t.Errorf("Scan()\nGot:  %#v\nWant: %#v", tt.v, tt.want)
+			if !reflect.DeepEqual(tt.want, got) {
+				t.Errorf("Scan()\nGot:  %#v\nWant: %#v", got, tt.want)
 			}
 		})
 	}
