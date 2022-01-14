@@ -10,6 +10,9 @@ import (
 	"github.com/domainr/epp2/internal/xml"
 )
 
+// ScanFor scans TokenReader r for an XML tag matching name.
+// It will then scan the contents of that tag into v.
+// If the first tag encountered does not match name, it returns an error.
 func ScanFor(r xml.TokenReader, name xml.Name, v interface{}) error {
 	return Scan(r, ElementScannerFunc(func(e xml.StartElement) (interface{}, error) {
 		if e.Name != name {
@@ -19,6 +22,22 @@ func ScanFor(r xml.TokenReader, name xml.Name, v interface{}) error {
 	}))
 }
 
+// Scan scans TokenReader r into v. It performs a shallow scan, looking for XML
+// start tags and character data. If a caller wishes to scan child nodes, then v
+// must implement ElementScanner and return a target for Scan to scan child
+// nodes into.
+//
+// If v implements ElementScanner, then Scan will call v.ScanElement and
+// recursively call Scan on the returned value.
+//
+// If v implements CharDataScanner, then Scan will call v.ScanCharData for all
+// child CharData tokens.
+//
+// If v implements encoding.TextUnmarshaler, then Scan will accumulate XML
+// character data and call v.UnmarshalText once.
+//
+// If v is a pointer to a built-in type (e.g. int, string, bool, etc.), Scan will
+// attempt to unmarshal the XML character data into v.
 func Scan(r xml.TokenReader, v interface{}) error {
 	v = scanInterface(v)
 	var err error
@@ -77,12 +96,6 @@ func Scan(r xml.TokenReader, v interface{}) error {
 				return fmt.Errorf("unexpected end tag %s, want %s", end.Name.Local, name.Local)
 			}
 			name = nil
-			// if s, ok := v.(EndElementScanner); ok {
-			// 	err = s.ScanEndElement(end)
-			// 	if err != nil {
-			// 		return err
-			// 	}
-			// }
 			continue
 		}
 
