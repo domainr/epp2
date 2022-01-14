@@ -46,7 +46,6 @@ func TestScan(t *testing.T) {
 	tests := []struct {
 		name    string
 		xml     string
-		v       interface{}
 		want    interface{}
 		wantErr bool
 	}{
@@ -54,13 +53,11 @@ func TestScan(t *testing.T) {
 			`nil`,
 			``,
 			nil,
-			nil,
 			false,
 		},
 		{
 			`unbalanced end tag`,
 			`</a>`,
-			nil,
 			nil,
 			true,
 		},
@@ -68,41 +65,73 @@ func TestScan(t *testing.T) {
 			`incorrect end tag`,
 			`<a></b>`,
 			nil,
-			nil,
 			true,
 		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			d := xml.NewDecoder(strings.NewReader(tt.xml))
+
+			var got interface{}
+			if tt.want != nil {
+				got = reflect.New(reflect.TypeOf(tt.want).Elem()).Interface()
+			}
+
+			err := Scan(d, got)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Scan error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			if !reflect.DeepEqual(tt.want, got) {
+				t.Errorf("Scan()\nGot:  %#v\nWant: %#v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestScanFor(t *testing.T) {
+	tests := []struct {
+		name    string
+		xml     string
+		space   string
+		local   string
+		want    interface{}
+		wantErr bool
+	}{
 		{
 			`empty login`,
 			`<login></login>`,
-			ScanFor(xml.Name{Local: "login"}, &Login{}),
+			"", "login",
 			&Login{},
 			false,
 		},
 		{
 			`login with empty child tags`,
 			`<login><clID></clID><pw></pw></login>`,
-			ScanFor(xml.Name{Local: "login"}, &Login{}),
+			"", "login",
 			&Login{},
 			false,
 		},
 		{
 			`empty outer`,
 			`<outer></outer>`,
-			ScanFor(xml.Name{Local: "outer"}, &Outer{}),
+			"", "outer",
 			&Outer{},
 			false,
 		},
 		{
 			`outer with inner`,
 			`<outer><inner></inner></outer>`,
-			ScanFor(xml.Name{Local: "outer"}, &Outer{}),
+			"", "outer",
 			&Outer{},
 			false,
 		},
 		{
 			`outer with inner with value`,
 			`<outer><inner>hello world</inner></outer>`,
-			ScanFor(xml.Name{Local: "outer"}, &Outer{}),
+			"", "outer",
 			&Outer{"hello world"},
 			false,
 		},
@@ -111,7 +140,13 @@ func TestScan(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			d := xml.NewDecoder(strings.NewReader(tt.xml))
-			got, err := Scan(d, tt.v)
+
+			var got interface{}
+			if tt.want != nil {
+				got = reflect.New(reflect.TypeOf(tt.want).Elem()).Interface()
+			}
+
+			err := ScanFor(d, xml.Name{Space: tt.space, Local: tt.local}, got)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Scan error = %v, wantErr %v", err, tt.wantErr)
 				return

@@ -10,9 +10,17 @@ import (
 	"github.com/domainr/epp2/internal/xml"
 )
 
-func Scan(r xml.TokenReader, v interface{}) (interface{}, error) {
+func ScanFor(r xml.TokenReader, name xml.Name, v interface{}) error {
+	return Scan(r, ElementScannerFunc(func(e xml.StartElement) (interface{}, error) {
+		if e.Name != name {
+			return nil, fmt.Errorf("unexpected start tag %s, want %s", e.Name.Local, name.Local)
+		}
+		return v, nil
+	}))
+}
+
+func Scan(r xml.TokenReader, v interface{}) error {
 	v = scanInterface(v)
-	var root interface{}
 	var err error
 
 	var charData xml.CharData
@@ -39,33 +47,34 @@ func Scan(r xml.TokenReader, v interface{}) (interface{}, error) {
 			if err == io.EOF {
 				err = nil
 			}
-			return root, err
+			return err
 		}
 
 		// Look for a start element first.
 		if start, ok := t.(xml.StartElement); ok {
 			name = &start.Name
+			var v2 interface{}
 			if s, ok := v.(ElementScanner); ok {
-				root, err = s.ScanElement(start)
+				v2, err = s.ScanElement(start)
 				if err != nil {
-					return root, err
+					return err
 				}
 			}
-			_, err = Scan(r, root)
+			err = Scan(r, v2)
 			if end, ok := err.(EndElementError); ok {
 				t = xml.EndElement(end)
 			} else if err != nil {
-				return root, err
+				return err
 			}
 		}
 
 		// An unbalanced end element might have been returned from Scan above.
 		if end, ok := t.(xml.EndElement); ok {
 			if name == nil {
-				return root, EndElementError(end)
+				return EndElementError(end)
 			}
 			if end.Name != *name {
-				return root, fmt.Errorf("unexpected end tag %s, want %s", end.Name.Local, name.Local)
+				return fmt.Errorf("unexpected end tag %s, want %s", end.Name.Local, name.Local)
 			}
 			name = nil
 			// if s, ok := v.(EndElementScanner); ok {
@@ -103,15 +112,6 @@ type ElementScannerFunc func(xml.StartElement) (interface{}, error)
 
 func (f ElementScannerFunc) ScanElement(e xml.StartElement) (interface{}, error) {
 	return f(e)
-}
-
-func ScanFor(name xml.Name, v interface{}) ElementScanner {
-	return ElementScannerFunc(func(e xml.StartElement) (interface{}, error) {
-		if e.Name == name {
-			return v, nil
-		}
-		return nil, nil
-	})
 }
 
 type EndElementError xml.EndElement
