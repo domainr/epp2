@@ -1,7 +1,6 @@
 package schema
 
 import (
-	"fmt"
 	"reflect"
 	"strings"
 	"testing"
@@ -16,7 +15,6 @@ type Login struct {
 }
 
 func (l *Login) ScanElement(start xml.StartElement) (interface{}, error) {
-	fmt.Println(start.Name.Local)
 	switch start.Name.Local {
 	case "clID":
 		return &l.user, nil
@@ -34,10 +32,27 @@ type Outer struct {
 }
 
 func (o *Outer) ScanElement(start xml.StartElement) (interface{}, error) {
-	fmt.Println(start.Name.Local)
 	switch start.Name.Local {
 	case "inner":
 		return &o.inner, nil
+	}
+	return nil, nil
+}
+
+type Invoice struct {
+	from   string
+	to     string
+	amount float32
+}
+
+func (i *Invoice) ScanAttr(attr xml.Attr) (interface{}, error) {
+	switch attr.Name.Local {
+	case "from":
+		return &i.from, nil
+	case "to":
+		return &i.to, nil
+	case "amount":
+		return &i.amount, nil
 	}
 	return nil, nil
 }
@@ -140,6 +155,20 @@ func TestScanFor(t *testing.T) {
 			`<outer><inner>hello world</inner></outer>`,
 			"", "outer",
 			&Outer{"hello world"},
+			false,
+		},
+		{
+			`invoice with no attributes`,
+			`<invoice></invoice>`,
+			"", "invoice",
+			&Invoice{},
+			false,
+		},
+		{
+			`invoice with multiple attributes`,
+			`<invoice from="Alice" to="Bob" amount="100.32"></invoice>`,
+			"", "invoice",
+			&Invoice{from: "Alice", to: "Bob", amount: 100.32},
 			false,
 		},
 	}

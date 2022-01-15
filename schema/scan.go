@@ -26,8 +26,10 @@ func ScanFor(r xml.TokenReader, name xml.Name, v interface{}) error {
 // must implement ElementScanner and return a target for Scan to scan child
 // nodes into.
 //
-// If v implements ElementScanner, then Scan will call v.ScanElement and
-// recursively call Scan on the returned value.
+// If v implements ElementScanner, then Scan will call v.ScanElement for each
+// XML tag encountered and recursively call Scan on the returned target (if
+// non-nil). If the returned target implements AttrScanner, then Scan will call
+// ScanAttr for each attribute.
 //
 // If v implements CharDataScanner, then Scan will call v.ScanCharData for all
 // child CharData tokens.
@@ -35,8 +37,8 @@ func ScanFor(r xml.TokenReader, name xml.Name, v interface{}) error {
 // If v implements encoding.TextUnmarshaler, then Scan will accumulate XML
 // character data and call v.UnmarshalText once.
 //
-// If v is a pointer to a built-in type (e.g. int, string, bool, etc.), Scan will
-// attempt to unmarshal the XML character data into v.
+// If v is a pointer to a built-in type (e.g. int, string, bool, etc.), Scan
+// will attempt to unmarshal the XML character data into v.
 func Scan(r xml.TokenReader, v interface{}) error {
 	v = scanInterface(v)
 	var err error
@@ -71,6 +73,8 @@ func Scan(r xml.TokenReader, v interface{}) error {
 		// Look for a start element first.
 		if start, ok := t.(xml.StartElement); ok {
 			name = &start.Name
+
+			// Get a scan target for child nodes.
 			var v2 interface{}
 			if s, ok := v.(ElementScanner); ok {
 				v2, err = s.ScanElement(start)
@@ -78,6 +82,25 @@ func Scan(r xml.TokenReader, v interface{}) error {
 					return err
 				}
 			}
+
+			// Scan XML attributes into v2.
+			if s, ok := v2.(AttrScanner); ok {
+				for _, attr := range start.Attr {
+					v3, err := s.ScanAttr(attr)
+					if err != nil {
+						return err
+					}
+					v3 = scanInterface(v3)
+					if t, ok := v3.(encoding.TextUnmarshaler); ok {
+						err = t.UnmarshalText([]byte(attr.Value))
+						if err != nil {
+							return err
+						}
+					}
+				}
+			}
+
+			// Scan child nodes into v2.
 			err = Scan(r, v2)
 			if end, ok := err.(EndElementError); ok {
 				t = xml.EndElement(end)
