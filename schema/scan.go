@@ -41,31 +41,19 @@ func ScanFor(r xml.TokenReader, name xml.Name, v interface{}) error {
 // will attempt to unmarshal the XML character data into v.
 func Scan(r xml.TokenReader, v interface{}) error {
 	v = scanInterface(v)
-	var err error
-
-	var charData xml.CharData
 	textUnmarshaler, _ := v.(encoding.TextUnmarshaler)
-	if textUnmarshaler != nil {
-		defer func() {
-			if len(charData) == 0 {
-				return
-			}
-			serr := err
-			err = textUnmarshaler.UnmarshalText(charData)
-			if err == nil {
-				err = serr
-			}
-		}()
-	}
 
-	var name *xml.Name
+	var (
+		name     *xml.Name
+		charData xml.CharData
+		rerr     error
+	)
 
 	for {
-		var t xml.Token
-		t, err = r.Token()
+		t, err := r.Token()
 		if t == nil && err != nil {
 			if err == io.EOF {
-				err = nil
+				break
 			}
 			return err
 		}
@@ -112,7 +100,8 @@ func Scan(r xml.TokenReader, v interface{}) error {
 		// An unbalanced end element might have been returned from Scan above.
 		if end, ok := t.(xml.EndElement); ok {
 			if name == nil {
-				return EndElementError(end)
+				rerr = EndElementError(end)
+				break
 			}
 			if end.Name != *name {
 				return fmt.Errorf("unexpected end tag %s, want %s", end.Name.Local, name.Local)
@@ -129,6 +118,16 @@ func Scan(r xml.TokenReader, v interface{}) error {
 			}
 		}
 	}
+
+	// Unmarshal accumulated character data.
+	if textUnmarshaler == nil || len(charData) == 0 {
+		return rerr
+	}
+	err := textUnmarshaler.UnmarshalText(charData)
+	if err != nil {
+		return err
+	}
+	return rerr
 }
 
 type ElementScanner interface {
