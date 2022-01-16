@@ -78,9 +78,8 @@ func Scan(r xml.TokenReader, v interface{}) error {
 					if err != nil {
 						return err
 					}
-					v3 = scanInterface(v3)
-					if t, ok := v3.(encoding.TextUnmarshaler); ok {
-						err = t.UnmarshalText([]byte(attr.Value))
+					if u, ok := scanInterface(v3).(encoding.TextUnmarshaler); ok {
+						err = u.UnmarshalText([]byte(attr.Value))
 						if err != nil {
 							return err
 						}
