@@ -9,14 +9,14 @@ import (
 //
 // New must return nil for any xml.Name it does not recognize.
 type Factory interface {
-	New(name xml.Name) interface{}
+	New(name xml.Name) any
 }
 
 // FactoryFunc is a function that implements the Factory interface.
-type FactoryFunc func(name xml.Name) interface{}
+type FactoryFunc func(name xml.Name) any
 
 // New calls f and returns the value.
-func (f FactoryFunc) New(name xml.Name) interface{} {
+func (f FactoryFunc) New(name xml.Name) any {
 	return f(name)
 }
 
@@ -51,7 +51,7 @@ func flatten(in factories) factories {
 type factories []Factory
 
 // New tries each Factory in order, returning the first non-nil value.
-func (slice factories) New(name xml.Name) interface{} {
+func (slice factories) New(name xml.Name) any {
 	for _, f := range slice {
 		v := f.New(name)
 		if v != nil {

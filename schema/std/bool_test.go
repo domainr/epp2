@@ -23,7 +23,7 @@ func TestBool(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		v       interface{}
+		v       any
 		want    string
 		wantErr bool
 	}{

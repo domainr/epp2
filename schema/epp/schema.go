@@ -21,7 +21,7 @@ func (schemaString) SchemaNS() []string {
 	return []string{NS}
 }
 
-func (schemaString) New(name xml.Name) interface{} {
+func (schemaString) New(name xml.Name) any {
 	if name.Space != NS {
 		return nil
 	}
