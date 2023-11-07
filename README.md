@@ -5,7 +5,7 @@
 
 Extensible Provisioning Protocol (EPP) for [Go](https://go.dev/).
 
-[EPP](https://tools.ietf.org/html/rfc5730) is an XML-based protocol for provisioning and managing domain names and other objects at domain name registries. The underlying transport is usually TLS, secured with password authentication, IP allow lists, and client certificates.
+[EPP](https://tools.ietf.org/html/rfc5730) is an XML-based protocol for provisioning and managing domain names and other objects at domain name registries. The underlying transport is usually TLS, secured with password authentication, IP allow lists, and [mTLS](https://en.wikipedia.org/wiki/Mutual_authentication).
 
 **Note:** This is a fork of [domainr/epp](https://github.com/domainr/epp) to develop and test the next version of its API. You should probably use it instead.
 
