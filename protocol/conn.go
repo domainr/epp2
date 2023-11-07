@@ -3,26 +3,38 @@ package protocol
 import (
 	"io"
 	"net"
-
-	"github.com/domainr/epp2/protocol/wire"
 )
 
-// Pipe implements [wire.Interface] using an io.Reader and an io.Writer.
+// Conn is the interface implemented by any type that can read and write EPP data units.
+// Concurrent operations on a Conn are implementation-specific and should
+// be protected by a synchronization mechanism.
+type Conn interface {
+	// ReadDataUnit reads a single EPP data unit, returning the payload bytes or an error.
+	ReadDataUnit() ([]byte, error)
+
+	// WriteDataUnit writes a single EPP data unit, returning any error.
+	WriteDataUnit([]byte) error
+
+	// Close closes the connection.
+	Close() error
+}
+
+// Pipe implements [Conn] using an io.Reader and an io.Writer.
 type Pipe struct {
 	R io.Reader
 	W io.Writer
 }
 
-var _ wire.Conn = &Pipe{}
+var _ Conn = &Pipe{}
 
 // ReadDataUnit reads a single EPP data unit from t, returning the payload bytes or an error.
 func (p *Pipe) ReadDataUnit() ([]byte, error) {
-	return wire.ReadDataUnit(p.R)
+	return ReadDataUnit(p.R)
 }
 
 // WriteDataUnit writes a single EPP data unit to t or returns an error.
 func (p *Pipe) WriteDataUnit(data []byte) error {
-	return wire.WriteDataUnit(p.W, data)
+	return WriteDataUnit(p.W, data)
 }
 
 // Close attempts to close both the underlying reader and writer.
@@ -44,19 +56,19 @@ func (p *Pipe) Close() error {
 	return werr
 }
 
-// Conn implements [wire.Interface] using a net.Conn.
-type Conn struct {
+// NetConn implements [Conn] using a net.Conn.
+type NetConn struct {
 	net.Conn
 }
 
-var _ wire.Conn = &Conn{}
+var _ Conn = &NetConn{}
 
 // ReadDataUnit reads a single EPP data unit from t, returning the payload or an error.
-func (c *Conn) ReadDataUnit() ([]byte, error) {
-	return wire.ReadDataUnit(c.Conn)
+func (c *NetConn) ReadDataUnit() ([]byte, error) {
+	return ReadDataUnit(c.Conn)
 }
 
 // WriteDataUnit writes a single EPP data unit to t or returns an error.
-func (c *Conn) WriteDataUnit(data []byte) error {
-	return wire.WriteDataUnit(c.Conn, data)
+func (c *NetConn) WriteDataUnit(data []byte) error {
+	return WriteDataUnit(c.Conn, data)
 }
