@@ -19,7 +19,7 @@ func (Check) eppAction() {}
 // xml.Decoder with an associated schema.Factory to correctly decode EPP <check>
 // sub-elements.
 func (c *Check) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
-	return schema.DecodeElements(d, func(v interface{}) error {
+	return schema.DecodeElements(d, func(v any) error {
 		if check, ok := v.(CheckType); ok {
 			c.Check = check
 		}

@@ -12,7 +12,7 @@ import (
 
 // RoundTrip validates if v marshals to want or wantErr (if set),
 // and the resulting XML unmarshals to v.
-func RoundTrip(t *testing.T, f schema.Factory, v interface{}, wantXML string, wantErr bool) {
+func RoundTrip(t *testing.T, f schema.Factory, v any, wantXML string, wantErr bool) {
 	gotXML, err := xml.Marshal(v)
 	if (err != nil) != wantErr {
 		t.Errorf("xml.Marshal() error = %v, wantErr %v", err, wantErr)
@@ -39,7 +39,7 @@ func RoundTrip(t *testing.T, f schema.Factory, v interface{}, wantXML string, wa
 
 // RoundTripName validates if v marshals to want or wantErr (if set),
 // and the resulting XML unmarshals to v. The outer XML tag will use name, if set.
-func RoundTripName(t *testing.T, f schema.Factory, name xml.Name, v interface{}, want string, wantErr bool) {
+func RoundTripName(t *testing.T, f schema.Factory, name xml.Name, v any, want string, wantErr bool) {
 	var err error
 	buf := &bytes.Buffer{}
 	enc := xml.NewEncoder(buf)

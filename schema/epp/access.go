@@ -42,7 +42,7 @@ func (a Access) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 
 // UnmarshalXML implements the xml.Unmarshaler interface.
 func (a *Access) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
-	return schema.DecodeElements(d, func(v interface{}) error {
+	return schema.DecodeElements(d, func(v any) error {
 		if e, ok := v.(*schema.Any); ok && e.XMLName.Space == NS {
 			*a = parseAccess(e.XMLName.Local)
 		}

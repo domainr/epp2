@@ -74,7 +74,7 @@ var _ io.Reader = &factoryReader{}
 var _ Factory = &factoryReader{}
 
 // New implements the Factory interface.
-func (r *factoryReader) New(name xml.Name) interface{} {
+func (r *factoryReader) New(name xml.Name) any {
 	v := r.Factory.New(name)
 	if v != nil {
 		return v
@@ -89,14 +89,14 @@ func (r *factoryReader) New(name xml.Name) interface{} {
 }
 
 // Unmarshal attempts to decode p into v using Factory f.
-func Unmarshal(p []byte, v interface{}, f Factory) error {
+func Unmarshal(p []byte, v any, f Factory) error {
 	return WithFactory(xml.NewDecoder(bytes.NewReader(p)), f).Decode(v)
 }
 
 // DecodeElement attempts to decode start using a Factory associated with d.
 // Unrecognized tag names will be decoded into an instance of Any.
-func DecodeElement(d *xml.Decoder, start xml.StartElement) (interface{}, error) {
-	var v interface{}
+func DecodeElement(d *xml.Decoder, start xml.StartElement) (any, error) {
+	var v any
 	f := GetFactory(d)
 	if f != nil {
 		v = f.New(start.Name)
@@ -112,7 +112,7 @@ func DecodeElement(d *xml.Decoder, start xml.StartElement) (interface{}, error) 
 // associated with d. Unrecognized tag names will be decoded into an instance of
 // Any. The callback cb will be called for each decoded element. Decoding will
 // stop if cb returns an error.
-func DecodeElements(d *xml.Decoder, cb func(interface{}) error) error {
+func DecodeElements(d *xml.Decoder, cb func(any) error) error {
 	for {
 		tok, err := d.Token()
 		if err == io.EOF {

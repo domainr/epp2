@@ -9,7 +9,7 @@ import (
 
 func TestFactory(t *testing.T) {
 	var n int
-	f := FactoryFunc(func(name xml.Name) interface{} {
+	f := FactoryFunc(func(name xml.Name) any {
 		if name.Space != "space" {
 			return nil
 		}
@@ -28,7 +28,7 @@ func TestFactory(t *testing.T) {
 	tests := []struct {
 		name string
 		arg  xml.Name
-		want interface{}
+		want any
 	}{
 		{
 			`empty name`,
@@ -67,10 +67,10 @@ func TestFactory(t *testing.T) {
 }
 
 type testFactory struct {
-	v interface{}
+	v any
 }
 
-func (f *testFactory) New(xml.Name) interface{} {
+func (f *testFactory) New(xml.Name) any {
 	return f.v
 }
 
