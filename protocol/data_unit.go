@@ -1,23 +1,9 @@
-package wire
+package protocol
 
 import (
 	"encoding/binary"
 	"io"
 )
-
-// Conn is the interface implemented by any type that can read and write EPP data units.
-// Concurrent operations on a Conn are implementation-specific and should
-// be protected by a synchronization mechanism.
-type Conn interface {
-	// ReadDataUnit reads a single EPP data unit, returning the payload bytes or an error.
-	ReadDataUnit() ([]byte, error)
-
-	// WriteDataUnit writes a single EPP data unit, returning any error.
-	WriteDataUnit([]byte) error
-
-	// Close closes the connection.
-	Close() error
-}
 
 // ReadDataUnit reads a single EPP data unit from r, returning the payload or an error.
 // An EPP data unit is prefixed with 32-bit header specifying the total size

@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/domainr/epp2/internal/xml"
-	"github.com/domainr/epp2/protocol/wire"
 
 	"github.com/domainr/epp2/schema/epp"
 )
@@ -47,8 +46,8 @@ type client struct {
 	// writing synchronizes writes to transport.
 	writing sync.Mutex
 
-	// TODO: rename this.
-	conn wire.Conn
+	// conn holds the underlying data unit connection.
+	conn Conn
 
 	// greeting stores the most recently received <greeting> from the server.
 	greeting atomic.Value
@@ -64,14 +63,14 @@ type client struct {
 }
 
 // NewClient returns a new Client using conn.
-func NewClient(conn wire.Conn) Client {
+func NewClient(conn Conn) Client {
 	c := newClient(conn)
 	// Read the initial <greeting> from the server.
 	go c.readEPP()
 	return c
 }
 
-func newClient(conn wire.Conn) *client {
+func newClient(conn Conn) *client {
 	return &client{
 		conn:        conn,
 		hasGreeting: make(chan struct{}),
