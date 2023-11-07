@@ -20,7 +20,7 @@ func (schemaString) SchemaNS() []string {
 	return []string{NS}
 }
 
-func (schemaString) New(name xml.Name) any {
+func (schemaString) ResolveXML(name xml.Name) any {
 	if name.Space != NS {
 		return nil
 	}

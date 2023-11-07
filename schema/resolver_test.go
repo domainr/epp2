@@ -58,9 +58,9 @@ func TestResolver(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := f.New(tt.arg)
+			got := f.ResolveXML(tt.arg)
 			if !reflect.DeepEqual(tt.want, got) {
-				t.Errorf("f.New(%v)\nGot:  %#v\nWant: %#v", tt.arg, got, tt.want)
+				t.Errorf("ResolveXML(%v)\nGot:  %#v\nWant: %#v", tt.arg, got, tt.want)
 			}
 		})
 	}
@@ -70,7 +70,7 @@ type testResolver struct {
 	v any
 }
 
-func (f *testResolver) New(xml.Name) any {
+func (f *testResolver) ResolveXML(xml.Name) any {
 	return f.v
 }
 

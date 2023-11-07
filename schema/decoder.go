@@ -73,9 +73,9 @@ type reader struct {
 var _ io.Reader = &reader{}
 var _ Resolver = &reader{}
 
-// New implements the [Resolver] interface.
-func (r *reader) New(name xml.Name) any {
-	v := r.Resolver.New(name)
+// ResolveXML implements the [Resolver] interface.
+func (r *reader) ResolveXML(name xml.Name) any {
+	v := r.Resolver.ResolveXML(name)
 	if v != nil {
 		return v
 	}
@@ -83,7 +83,7 @@ func (r *reader) New(name xml.Name) any {
 	// If r.Reader also implements [Resolver] (which means it’s probably a
 	// resolverReader), call it.
 	if f, ok := r.Reader.(Resolver); ok {
-		return f.New(name)
+		return f.ResolveXML(name)
 	}
 	return nil
 }
@@ -99,7 +99,7 @@ func DecodeElement(d *xml.Decoder, start xml.StartElement) (any, error) {
 	var v any
 	f := GetResolver(d)
 	if f != nil {
-		v = f.New(start.Name)
+		v = f.ResolveXML(start.Name)
 	}
 	if v == nil {
 		v = &Any{}

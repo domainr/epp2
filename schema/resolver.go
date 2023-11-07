@@ -4,19 +4,19 @@ import (
 	"github.com/domainr/epp2/internal/xml"
 )
 
-// Resolver is a generic interface that can return a new instance of a type
-// identified by an xml.Name.
+// Resolver is the interface implemented by any type can can resolve
+// an [xml.Name] into some value.
 //
-// New must return nil for any xml.Name it does not recognize.
+// ResolveXML must return nil for any xml.Name it does not recognize.
 type Resolver interface {
-	New(name xml.Name) any
+	ResolveXML(name xml.Name) any
 }
 
-// ResolverFunc is a function that implements the Resolver interface.
+// ResolverFunc is a func that implements the [Resolver] interface.
 type ResolverFunc func(name xml.Name) any
 
-// New calls f and returns the value.
-func (f ResolverFunc) New(name xml.Name) any {
+// ResolveXML implements [Resolver] via func f.
+func (f ResolverFunc) ResolveXML(name xml.Name) any {
 	return f(name)
 }
 
@@ -50,10 +50,10 @@ func flatten(in resolvers) resolvers {
 // value.
 type resolvers []Resolver
 
-// New tries each [Resolver] in order, returning the first non-nil value.
-func (slice resolvers) New(name xml.Name) any {
+// ResolveXML tries each [Resolver] in order, returning the first non-nil value.
+func (slice resolvers) ResolveXML(name xml.Name) any {
 	for _, f := range slice {
-		v := f.New(name)
+		v := f.ResolveXML(name)
 		if v != nil {
 			return v
 		}

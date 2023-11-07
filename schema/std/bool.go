@@ -15,7 +15,7 @@ const (
 	False Bool = false
 )
 
-// UnmarshalXML impements the xml.Unmarshaler interface.
+// UnmarshalXML impements the [xml.Unmarshaler] interface.
 // Any tag present with this type = true.
 // TODO: support <tag>false</tag> representation.
 func (b *Bool) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
@@ -25,7 +25,7 @@ func (b *Bool) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 	return nil
 }
 
-// UnmarshalXMLAttr impements the xml.MarshalerAttr interface.
+// UnmarshalXMLAttr impements the [xml.MarshalerAttr] interface.
 // An empty value, 0, or starting with a f or F is considered false.
 // Any other value is considered true.
 func (b *Bool) UnmarshalXMLAttr(attr *xml.Attr) error {
@@ -37,7 +37,7 @@ func (b *Bool) UnmarshalXMLAttr(attr *xml.Attr) error {
 	return nil
 }
 
-// MarshalXML impements the xml.Marshaler interface.
+// MarshalXML impements the [xml.Marshaler] interface.
 // Any tag present with this type = true.
 func (b Bool) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 	if !b {
@@ -49,7 +49,7 @@ func (b Bool) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 	return e.EncodeElement(&T{}, start)
 }
 
-// MarshalXMLAttr implements the xml.MarshalerAttr interface.
+// MarshalXMLAttr implements the [xml.MarshalerAttr] interface.
 // Attributes will be serialized with a value of "0" or "1".
 func (b Bool) MarshalXMLAttr(name xml.Name) (attr xml.Attr, err error) {
 	attr.Name = name
