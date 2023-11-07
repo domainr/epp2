@@ -30,7 +30,7 @@ func (Command) eppBody() {}
 
 // UnmarshalXML implements the xml.Unmarshaler interface.
 // It maps known EPP commands to their corresponding Go type.
-// It requires an xml.Decoder with an associated schema.Factory to
+// It requires an xml.Decoder with an associated schema.Resolver to
 // correctly decode EPP <command> sub-elements.
 func (c *Command) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 	type T Command
@@ -51,7 +51,7 @@ type actionWrapper struct {
 	Action Action
 }
 
-// UnmarshalXML requires an xml.Decoder with an associated schema.Factory to
+// UnmarshalXML requires an xml.Decoder with an associated schema.Resolver to
 // property decode EPP <command> actions.
 func (w *actionWrapper) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 	v, err := schema.DecodeElement(d, start)
