@@ -23,7 +23,7 @@ type Server struct {
 
 type Session interface {
 	// Context returns the connection Context for this session. The Context
-	// will be canceled if the underlying Transport goes away or is closed.
+	// will be canceled if the underlying connection goes away or is closed.
 	Context() context.Context
 
 	// ReadCommand reads the next EPP command from the client. An error will
