@@ -16,7 +16,7 @@ type Check struct {
 func (Check) eppAction() {}
 
 // UnmarshalXML implements the xml.Unmarshaler interface. It requires an
-// xml.Decoder with an associated schema.Factory to correctly decode EPP <check>
+// xml.Decoder with an associated schema.Resolver to correctly decode EPP <check>
 // sub-elements.
 func (c *Check) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 	return schema.DecodeElements(d, func(v any) error {

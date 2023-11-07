@@ -7,16 +7,16 @@ import (
 	"github.com/domainr/epp2/internal/xml"
 )
 
-// WithFactory associates a Factory f with xml.Decoder d by overriding the
-// CharsetReader field with a special value that returns the Factory. If
+// WithResolver associates a [Resolver] f with [xml.Decoder] d by overriding the
+// CharsetReader field with a special value that returns the Resolver. If
 // CharsetReader is not nil, the function will be wrapped.
 //
-// The Factory can be retrieved from the Decoder using GetFactory(d). This
+// The Resolver can be retrieved from the [xml.Decoder] using GetResolver(d). This
 // allows decoding of deeply-nested XML structures that are extended with types
 // unknown to a parent package.
 //
 // If f is nil, d will not be modified.
-func WithFactory(d *xml.Decoder, f Factory) *xml.Decoder {
+func WithResolver(d *xml.Decoder, f Resolver) *xml.Decoder {
 	if f == nil {
 		return d
 	}
@@ -26,14 +26,14 @@ func WithFactory(d *xml.Decoder, f Factory) *xml.Decoder {
 		if saved != nil {
 			r, err = saved(charset, r)
 		}
-		return &factoryReader{f, r}, err
+		return &reader{f, r}, err
 	}
 	return d
 }
 
-// GetFactory accesses a Factory associated with xml.Decoder d. If d does not
-// have an associated Factory, it will return nil.
-func GetFactory(d *xml.Decoder) Factory {
+// GetResolver accesses a [Resolver] associated with [xml.Decoder] d. If d does not
+// have an associated Resolver, it will return nil.
+func GetResolver(d *xml.Decoder) Resolver {
 	if d.CharsetReader == nil {
 		return nil
 	}
@@ -41,7 +41,7 @@ func GetFactory(d *xml.Decoder) Factory {
 	if err != nil {
 		return nil
 	}
-	if f, ok := r.(Factory); ok {
+	if f, ok := r.(Resolver); ok {
 		return f
 	}
 	return nil
@@ -53,51 +53,51 @@ func (eof) Read([]byte) (int, error) {
 	return 0, io.EOF
 }
 
-// UseFactory associates a Factory f with xml.Decoder d and calls cb with the
-// modified Decoder. It restores the Decoder before returning.
+// UseResolver associates [Resolver] r with [xml.Decoder] d and calls f with the
+// modified xml.Decoder. The xml.Decoder is restored before returning.
 //
-// If f is nil, cb will be called with an unmodified xml.Decoder.
-func UseFactory(d *xml.Decoder, f Factory, cb func(*xml.Decoder) error) error {
+// If r is nil, f will be called with an unmodified xml.Decoder.
+func UseResolver(d *xml.Decoder, r Resolver, f func(*xml.Decoder) error) error {
 	saved := d.CharsetReader
-	d = WithFactory(d, f)
-	err := cb(d)
+	d = WithResolver(d, r)
+	err := f(d)
 	d.CharsetReader = saved
 	return err
 }
 
-type factoryReader struct {
-	Factory
+type reader struct {
+	Resolver
 	io.Reader
 }
 
-var _ io.Reader = &factoryReader{}
-var _ Factory = &factoryReader{}
+var _ io.Reader = &reader{}
+var _ Resolver = &reader{}
 
-// New implements the Factory interface.
-func (r *factoryReader) New(name xml.Name) any {
-	v := r.Factory.New(name)
+// New implements the [Resolver] interface.
+func (r *reader) New(name xml.Name) any {
+	v := r.Resolver.New(name)
 	if v != nil {
 		return v
 	}
 
-	// If r.Reader also implements Factory (which means it’s probably a
-	// factoryReader), call it.
-	if f, ok := r.Reader.(Factory); ok {
+	// If r.Reader also implements [Resolver] (which means it’s probably a
+	// resolverReader), call it.
+	if f, ok := r.Reader.(Resolver); ok {
 		return f.New(name)
 	}
 	return nil
 }
 
-// Unmarshal attempts to decode p into v using Factory f.
-func Unmarshal(p []byte, v any, f Factory) error {
-	return WithFactory(xml.NewDecoder(bytes.NewReader(p)), f).Decode(v)
+// Unmarshal attempts to decode p into v using [Resolver] f.
+func Unmarshal(p []byte, v any, f Resolver) error {
+	return WithResolver(xml.NewDecoder(bytes.NewReader(p)), f).Decode(v)
 }
 
-// DecodeElement attempts to decode start using a Factory associated with d.
-// Unrecognized tag names will be decoded into an instance of Any.
+// DecodeElement attempts to decode start using a [Resolver] associated with d.
+// Unrecognized tag names will be decoded into an instance of [Any].
 func DecodeElement(d *xml.Decoder, start xml.StartElement) (any, error) {
 	var v any
-	f := GetFactory(d)
+	f := GetResolver(d)
 	if f != nil {
 		v = f.New(start.Name)
 	}
@@ -108,11 +108,11 @@ func DecodeElement(d *xml.Decoder, start xml.StartElement) (any, error) {
 	return v, err
 }
 
-// DecodeElements attempts to decode a sequence of XML elements using a Factory
+// DecodeElements attempts to decode a sequence of XML elements using a [Resolver]
 // associated with d. Unrecognized tag names will be decoded into an instance of
-// Any. The callback cb will be called for each decoded element. Decoding will
-// stop if cb returns an error.
-func DecodeElements(d *xml.Decoder, cb func(any) error) error {
+// [Any]. Func f will be called for each decoded element. Decoding will
+// stop if f returns an error.
+func DecodeElements(d *xml.Decoder, f func(any) error) error {
 	for {
 		tok, err := d.Token()
 		if err == io.EOF {
@@ -126,7 +126,7 @@ func DecodeElements(d *xml.Decoder, cb func(any) error) error {
 			if err != nil {
 				return err
 			}
-			err = cb(v)
+			err = f(v)
 			if err != nil {
 				return err
 			}

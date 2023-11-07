@@ -7,9 +7,9 @@ import (
 	"github.com/domainr/epp2/internal/xml"
 )
 
-func TestFactory(t *testing.T) {
+func TestResolver(t *testing.T) {
 	var n int
-	f := FactoryFunc(func(name xml.Name) any {
+	f := ResolverFunc(func(name xml.Name) any {
 		if name.Space != "space" {
 			return nil
 		}
@@ -66,23 +66,23 @@ func TestFactory(t *testing.T) {
 	}
 }
 
-type testFactory struct {
+type testResolver struct {
 	v any
 }
 
-func (f *testFactory) New(xml.Name) any {
+func (f *testResolver) New(xml.Name) any {
 	return f.v
 }
 
-func TestFactories(t *testing.T) {
-	a := &testFactory{}
-	b := &testFactory{&struct{}{}}
-	c := &testFactory{[]byte{}}
+func TestFlatten(t *testing.T) {
+	a := &testResolver{}
+	b := &testResolver{&struct{}{}}
+	c := &testResolver{[]byte{}}
 
 	tests := []struct {
 		name string
-		args []Factory
-		want factories
+		args []Resolver
+		want resolvers
 	}{
 		{
 			`nil`,
@@ -91,53 +91,53 @@ func TestFactories(t *testing.T) {
 		},
 		{
 			`empty slice`,
-			factories{},
-			factories{},
+			resolvers{},
+			resolvers{},
 		},
 		{
 			`one element`,
-			factories{a},
-			factories{a},
+			resolvers{a},
+			resolvers{a},
 		},
 		{
 			`two elements`,
-			factories{a, b},
-			factories{a, b},
+			resolvers{a, b},
+			resolvers{a, b},
 		},
 		{
 			`three elements`,
-			factories{a, b, c},
-			factories{a, b, c},
+			resolvers{a, b, c},
+			resolvers{a, b, c},
 		},
 		{
 			`mixed nils`,
-			factories{a, nil, nil, b, c, nil},
-			factories{a, b, c},
+			resolvers{a, nil, nil, b, c, nil},
+			resolvers{a, b, c},
 		},
 		{
 			`nested`,
-			factories{factories{a, b}, c},
-			factories{a, b, c},
+			resolvers{resolvers{a, b}, c},
+			resolvers{a, b, c},
 		},
 		{
 			`nested with nils`,
-			factories{factories{nil, a, b}, nil, nil, c, nil},
-			factories{a, b, c},
+			resolvers{resolvers{nil, a, b}, nil, nil, c, nil},
+			resolvers{a, b, c},
 		},
 		{
 			`deeply nested`,
-			factories{factories{factories{factories{a}, b}}, c},
-			factories{a, b, c},
+			resolvers{resolvers{resolvers{resolvers{a}, b}}, c},
+			resolvers{a, b, c},
 		},
 		{
 			`deeply nested with nils`,
-			factories{nil, factories{factories{nil, factories{a, nil, nil}, b}}, factories{}, nil, c, nil},
-			factories{a, b, c},
+			resolvers{nil, resolvers{resolvers{nil, resolvers{a, nil, nil}, b}}, resolvers{}, nil, c, nil},
+			resolvers{a, b, c},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := Factories(tt.args...)
+			got := Flatten(tt.args...)
 			if !reflect.DeepEqual(tt.want, got) {
 				t.Errorf("Factories()\nGot:  %#v\nWant: %#v", got, tt.want)
 			}
