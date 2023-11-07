@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/domainr/epp2/internal/xml"
+	"github.com/domainr/epp2/protocol/wire"
 
 	"github.com/domainr/epp2/schema/epp"
 )
@@ -47,7 +48,7 @@ type client struct {
 	writing sync.Mutex
 
 	// TODO: rename this.
-	transport Transport
+	conn wire.Conn
 
 	// greeting stores the most recently received <greeting> from the server.
 	greeting atomic.Value
@@ -62,24 +63,24 @@ type client struct {
 	commands  map[string]transaction
 }
 
-// NewClient returns a new Client using t.
-func NewClient(t Transport) Client {
-	c := newClient(t)
+// NewClient returns a new Client using conn.
+func NewClient(conn wire.Conn) Client {
+	c := newClient(conn)
 	// Read the initial <greeting> from the server.
 	go c.readEPP()
 	return c
 }
 
-func newClient(t Transport) *client {
+func newClient(conn wire.Conn) *client {
 	return &client{
-		transport:   t,
+		conn:        conn,
 		hasGreeting: make(chan struct{}),
 	}
 }
 
 // Close closes the connection and cancels any pending commands.
 func (c *client) Close() error {
-	err := c.transport.Close()
+	err := c.conn.Close()
 	cerr := err
 	if cerr == nil {
 		cerr = ErrClosedConnection
@@ -198,7 +199,7 @@ func (c *client) Greeting(ctx context.Context) (*epp.Greeting, error) {
 	}
 }
 
-// writeEPP writes body to the underlying Transport.
+// writeEPP writes body to the underlying connection.
 // Writes are synchronized, so it is safe to call this from multiple goroutines.
 func (c *client) writeEPP(body epp.Body) error {
 	x, err := xml.Marshal(epp.EPP{Body: body})
@@ -208,11 +209,11 @@ func (c *client) writeEPP(body epp.Body) error {
 	return c.writeDataUnit(x)
 }
 
-// writeDataUnit writes a single EPP data unit to the underlying Transport.
+// writeDataUnit writes a single EPP data unit to the underlying connection.
 // Writes are synchronized, so it is safe to call this from multiple goroutines.
 func (c *client) writeDataUnit(p []byte) error {
 	c.writing.Lock()
-	err := c.transport.WriteDataUnit(p)
+	err := c.conn.WriteDataUnit(p)
 	c.writing.Unlock()
 	return err
 }
@@ -221,7 +222,7 @@ func (c *client) writeDataUnit(p []byte) error {
 // awaiting transaction.
 func (c *client) readEPP() error {
 	c.reading.Lock()
-	p, err := c.transport.ReadDataUnit()
+	p, err := c.conn.ReadDataUnit()
 	c.reading.Unlock()
 	if err != nil {
 		return err
