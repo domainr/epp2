@@ -1,16 +1,16 @@
-package contact
+package common
 
 import (
 	"github.com/domainr/epp2/internal/xml"
 	"github.com/domainr/epp2/schema"
 )
 
-// NS defines the IETF URN for the EPP contact namespace.
-// See https://www.iana.org/assignments/xml-registry/ns/contact-1.0.txt.
-const NS = "urn:ietf:params:xml:ns:contact-1.0"
+// NS defines the IETF URN for the EPP common namespace.
+// See https://www.iana.org/assignments/xml-registry/ns/eppcom-1.0.txt.
+const NS = "urn:ietf:params:xml:ns:eppcom-1.0"
 
-// Schema implements the schema.Schema interface for the EPP contact namespace.
-const Schema schemaString = "contact"
+// Schema implements the schema.Schema interface for the EPP common namespace.
+const Schema schemaString = "eppcom"
 
 var _ schema.Schema = Schema
 
@@ -29,9 +29,7 @@ func (schemaString) ResolveXML(name xml.Name) any {
 		return nil
 	}
 	switch name.Local {
-	// TODO: other types.
-	// case "check":
-	// 	return &Check{}
+	// TODO: what are EPP common types?
 	}
 	return nil
 }
