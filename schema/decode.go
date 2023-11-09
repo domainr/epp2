@@ -16,8 +16,8 @@ import (
 // unknown to a parent package.
 //
 // If f is nil, d will not be modified.
-func WithResolver(d *xml.Decoder, f Resolver) *xml.Decoder {
-	if f == nil {
+func WithResolver(d *xml.Decoder, resolver Resolver) *xml.Decoder {
+	if resolver == nil {
 		return d
 	}
 	saved := d.CharsetReader
@@ -26,7 +26,7 @@ func WithResolver(d *xml.Decoder, f Resolver) *xml.Decoder {
 		if saved != nil {
 			r, err = saved(charset, r)
 		}
-		return &reader{f, r}, err
+		return &reader{resolver, r}, err
 	}
 	return d
 }
@@ -41,8 +41,8 @@ func GetResolver(d *xml.Decoder) Resolver {
 	if err != nil {
 		return nil
 	}
-	if f, ok := r.(Resolver); ok {
-		return f
+	if resolver, ok := r.(Resolver); ok {
+		return resolver
 	}
 	return nil
 }
@@ -53,13 +53,13 @@ func (eof) Read([]byte) (int, error) {
 	return 0, io.EOF
 }
 
-// UseResolver associates [Resolver] r with [xml.Decoder] d and calls f with the
-// modified xml.Decoder. The xml.Decoder is restored before returning.
+// UseResolver associates resolver with [xml.Decoder] d and calls f with the
+// modified [xml.Decoder]. The xml.Decoder is restored before returning.
 //
 // If r is nil, f will be called with an unmodified xml.Decoder.
-func UseResolver(d *xml.Decoder, r Resolver, f func(*xml.Decoder) error) error {
+func UseResolver(d *xml.Decoder, resolver Resolver, f func(*xml.Decoder) error) error {
 	saved := d.CharsetReader
-	d = WithResolver(d, r)
+	d = WithResolver(d, resolver)
 	err := f(d)
 	d.CharsetReader = saved
 	return err
@@ -82,24 +82,24 @@ func (r *reader) ResolveXML(name xml.Name) any {
 
 	// If r.Reader also implements [Resolver] (which means it’s probably a
 	// resolverReader), call it.
-	if f, ok := r.Reader.(Resolver); ok {
-		return f.ResolveXML(name)
+	if resolver, ok := r.Reader.(Resolver); ok {
+		return resolver.ResolveXML(name)
 	}
 	return nil
 }
 
 // Unmarshal attempts to decode p into v using [Resolver] f.
-func Unmarshal(p []byte, v any, f Resolver) error {
-	return WithResolver(xml.NewDecoder(bytes.NewReader(p)), f).Decode(v)
+func Unmarshal(p []byte, v any, resolver Resolver) error {
+	return WithResolver(xml.NewDecoder(bytes.NewReader(p)), resolver).Decode(v)
 }
 
 // DecodeElement attempts to decode start using a [Resolver] associated with d.
 // Unrecognized tag names will be decoded into an instance of [Any].
 func DecodeElement(d *xml.Decoder, start xml.StartElement) (any, error) {
 	var v any
-	f := GetResolver(d)
-	if f != nil {
-		v = f.ResolveXML(start.Name)
+	r := GetResolver(d)
+	if r != nil {
+		v = r.ResolveXML(start.Name)
 	}
 	if v == nil {
 		v = &Any{}
