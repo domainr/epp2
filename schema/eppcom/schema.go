@@ -1,4 +1,4 @@
-package common
+package eppcom
 
 import (
 	"github.com/domainr/epp2/internal/xml"
