@@ -26,7 +26,7 @@ type Server struct {
 
 	// ConnContext is called for each incoming connection.
 	// If nil, context.Background() will be called.
-	ConnContext func() context.Context
+	ConnContext func(protocol.Conn) context.Context
 
 	inShutdown atomic.Bool
 
@@ -35,9 +35,9 @@ type Server struct {
 	listenerGroup sync.WaitGroup
 }
 
-func (s *Server) connContext() context.Context {
+func (s *Server) connContext(conn protocol.Conn) context.Context {
 	if s.ConnContext != nil {
-		return s.ConnContext()
+		return s.ConnContext(conn)
 	}
 	return context.Background()
 }
@@ -81,17 +81,17 @@ func (s *Server) Serve(l net.Listener) error {
 			}
 			return err
 		}
-		go s.Accept(&protocol.NetConn{Conn: conn})
+		go s.Handle(&protocol.NetConn{Conn: conn})
 	}
 }
 
-// Accept accepts a connection and receives and processes EPP commands.
-func (s *Server) Accept(conn protocol.Conn) error {
+// Handle accepts a connection and receives and processes EPP commands.
+func (s *Server) Handle(conn protocol.Conn) error {
 	if s.shuttingDown() {
 		return ErrServerClosed
 	}
 	session := &session{
-		ctx:  s.connContext(),
+		ctx:  s.connContext(conn),
 		conn: conn,
 	}
 	return s.handle(session)
