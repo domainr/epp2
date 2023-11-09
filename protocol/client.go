@@ -14,8 +14,10 @@ import (
 )
 
 // Client is a low-level client for the Extensible Provisioning Protocol (EPP)
-// as defined in RFC 3790. See https://www.rfc-editor.org/rfc/rfc5730.html.
+// as defined in [RFC 5730].
 // A Client is safe to use from multiple goroutines.
+//
+// [RFC 5730]: https://datatracker.ietf.org/doc/rfc5730/
 type Client interface {
 	// Command sends an EPP command and returns an EPP response.
 	// It blocks until a response is received, ctx is canceled, or
