@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/domainr/epp2/internal/xml"
+	"github.com/domainr/epp2/schema"
 
 	"github.com/domainr/epp2/schema/epp"
 )
@@ -55,6 +56,8 @@ type client struct {
 	// hasGreeting is closed when the client receives an initial <greeting> from the server.
 	hasGreeting chan struct{}
 
+	schemas schema.Schemas
+
 	mHellos sync.Mutex
 	hellos  []transaction
 
@@ -62,18 +65,24 @@ type client struct {
 	commands  map[string]transaction
 }
 
-// NewClient returns a new Client using conn.
-func NewClient(conn Conn) Client {
-	c := newClient(conn)
+// NewClient returns a new EPP client using conn.
+// Responses from the server will be decoded using [schemas.Schema] schemas.
+// If no schemas are provided, a set of reasonable defaults will be used.
+func NewClient(conn Conn, schemas ...schema.Schema) Client {
+	c := newClient(conn, schemas)
 	// Read the initial <greeting> from the server.
 	go c.readEPP()
 	return c
 }
 
-func newClient(conn Conn) *client {
+func newClient(conn Conn, schemas schema.Schemas) *client {
+	if len(schemas) == 0 {
+		schemas = DefaultSchemas()
+	}
 	return &client{
 		conn:        conn,
 		hasGreeting: make(chan struct{}),
+		schemas:     schemas,
 	}
 }
 
@@ -87,6 +96,8 @@ func (c *client) Close() error {
 	c.cleanup(cerr)
 	return err
 }
+
+// TODO: implement Shutdown(ctx) for graceful shutdown of a client connection?
 
 // ServerConfig returns the server configuration described in a <greeting> message.
 // Will block until the an initial <greeting> is received, or ctx is canceled.
@@ -231,7 +242,7 @@ func (c *client) readEPP() error {
 
 func (c *client) handleDataUnit(p []byte) error {
 	var e epp.EPP
-	err := xml.Unmarshal(p, &e)
+	err := schema.Unmarshal(p, &e, c.schemas)
 	if err != nil {
 		return err
 	}
