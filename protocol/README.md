@@ -26,7 +26,7 @@ if err != nil {
 // ...
 ```
 
-Send a EPP `<hello>` and wait for the new `<greeting>`:
+Send an EPP `<hello>` and wait for the new `<greeting>`:
 
 ```go
 greeting, err := client.Hello(context.Background())
