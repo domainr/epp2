@@ -2,13 +2,11 @@ package protocol
 
 import (
 	"context"
-	"fmt"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/domainr/epp2/schema"
-
 	"github.com/domainr/epp2/schema/epp"
 )
 
@@ -135,9 +133,12 @@ func (c *client) ServerTime(ctx context.Context) (time.Time, error) {
 func (c *client) Command(ctx context.Context, cmd *epp.Command) (*epp.Response, error) {
 	tx, cancel := newTransaction(ctx)
 	defer cancel()
-	c.pushCommand(cmd.ClientTransactionID, tx)
+	err := c.pushCommand(cmd.ClientTransactionID, tx)
+	if err != nil {
+		return nil, err
+	}
 
-	err := c.conn.WriteEPP(cmd)
+	err = c.conn.WriteEPP(cmd)
 	if err != nil {
 		return nil, err
 	}
@@ -219,13 +220,13 @@ func (c *client) handleReply(body epp.Body) error {
 		id := body.TransactionID.Client
 		if id == "" {
 			// TODO: log when server responds with an empty client transaction ID.
-			return TransactionIDError(id)
+			return TransactionIDError{id}
 		}
 		t, ok := c.popCommand(id)
 		if !ok {
 			// TODO: log when server responds with unknown transaction ID.
 			// TODO: keep abandoned transactions around for some period of time.
-			return TransactionIDError(id)
+			return TransactionIDError{id}
 		}
 		err := c.replyTo(t, body, nil)
 		if err != nil {
@@ -296,7 +297,7 @@ func (c *client) pushCommand(id string, tx transaction) error {
 	defer c.mCommands.Unlock()
 	_, ok := c.commands[id]
 	if ok {
-		return fmt.Errorf("epp: transaction already exists: %s", id)
+		return DuplicateTransactionIDError{id}
 	}
 	if c.commands == nil {
 		c.commands = make(map[string]transaction)
