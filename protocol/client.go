@@ -7,15 +7,13 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/domainr/epp2/internal/xml"
 	"github.com/domainr/epp2/schema"
 
 	"github.com/domainr/epp2/schema/epp"
 )
 
 // Client is a low-level client for the Extensible Provisioning Protocol (EPP)
-// as defined in [RFC 5730].
-// A Client is safe to use from multiple goroutines.
+// as defined in [RFC 5730]. A Client is safe to use from multiple goroutines.
 //
 // [RFC 5730]: https://datatracker.ietf.org/doc/rfc5730/
 type Client interface {
@@ -43,13 +41,6 @@ type Client interface {
 }
 
 type client struct {
-	// reading synchronizes reads from transport.
-	reading sync.Mutex
-
-	// writing synchronizes writes to transport.
-	writing sync.Mutex
-
-	// conn holds the underlying data unit connection.
 	conn Conn
 
 	// greeting stores the most recently received <greeting> from the server.
@@ -146,7 +137,7 @@ func (c *client) Command(ctx context.Context, cmd *epp.Command) (*epp.Response, 
 	defer cancel()
 	c.pushCommand(cmd.ClientTransactionID, tx)
 
-	err := c.writeEPP(cmd)
+	err := c.conn.WriteEPP(cmd)
 	if err != nil {
 		return nil, err
 	}
@@ -174,7 +165,8 @@ func (c *client) Hello(ctx context.Context) (*epp.Greeting, error) {
 	defer cancel()
 	c.pushHello(tx)
 
-	err := c.writeEPP(&epp.Hello{})
+	var hello epp.Hello
+	err := c.conn.WriteEPP(&hello)
 	if err != nil {
 		return nil, err
 	}
@@ -211,44 +203,14 @@ func (c *client) Greeting(ctx context.Context) (*epp.Greeting, error) {
 	}
 }
 
-// writeEPP writes body to the underlying connection.
-// Writes are synchronized, so it is safe to call this from multiple goroutines.
-func (c *client) writeEPP(body epp.Body) error {
-	x, err := xml.Marshal(epp.EPP{Body: body})
-	if err != nil {
-		return err
-	}
-	return c.writeDataUnit(x)
-}
-
-// writeDataUnit writes a single EPP data unit to the underlying connection.
-// Writes are synchronized, so it is safe to call this from multiple goroutines.
-func (c *client) writeDataUnit(p []byte) error {
-	c.writing.Lock()
-	err := c.conn.WriteDataUnit(p)
-	c.writing.Unlock()
-	return err
-}
-
-// readEPP reads a single EPP data unit from c.t and dispatches it to an
+// readEPP reads a single EPP data unit and dispatches it to an
 // awaiting transaction.
 func (c *client) readEPP() error {
-	c.reading.Lock()
-	p, err := c.conn.ReadDataUnit()
-	c.reading.Unlock()
+	body, err := c.conn.ReadEPP()
 	if err != nil {
 		return err
 	}
-	return c.handleDataUnit(p)
-}
-
-func (c *client) handleDataUnit(p []byte) error {
-	var e epp.EPP
-	err := schema.Unmarshal(p, &e, c.schemas)
-	if err != nil {
-		return err
-	}
-	return c.handleReply(e.Body)
+	return c.handleReply(body)
 }
 
 func (c *client) handleReply(body epp.Body) error {

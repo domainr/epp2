@@ -7,6 +7,7 @@ import (
 	"sync/atomic"
 
 	"github.com/domainr/epp2/protocol"
+	"github.com/domainr/epp2/protocol/wire"
 	"github.com/domainr/epp2/schema/epp"
 )
 
@@ -81,7 +82,8 @@ func (s *Server) Serve(l net.Listener) error {
 			}
 			return err
 		}
-		go s.Handle(&protocol.NetConn{Conn: conn})
+		pconn := protocol.NewConn(&wire.NetConn{Conn: conn}, s.Config.Schemas)
+		go s.Handle(pconn)
 	}
 }
 

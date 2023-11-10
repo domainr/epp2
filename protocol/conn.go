@@ -1,74 +1,82 @@
 package protocol
 
 import (
-	"io"
-	"net"
+	"encoding/xml"
+	"sync"
+
+	"github.com/domainr/epp2/protocol/wire"
+	"github.com/domainr/epp2/schema"
+	"github.com/domainr/epp2/schema/epp"
 )
 
-// Conn is the interface implemented by any type that can read and write EPP data units.
-// Concurrent operations on a Conn are implementation-specific and should
-// be protected by a synchronization mechanism.
+// Conn represents a low-level EPP connection.
+// Reads and writes are synchronized, so a Conn is safe to use from multiple goroutines.
 type Conn interface {
-	// ReadDataUnit reads a single EPP data unit, returning the payload bytes or an error.
-	ReadDataUnit() ([]byte, error)
+	// ReadEPP reads the next EPP message from the underlying connection.
+	// An error will be returned if the underlying connection is closed or an error occurs
+	// reading from the connection.
+	ReadEPP() (epp.Body, error)
 
-	// WriteDataUnit writes a single EPP data unit, returning any error.
-	WriteDataUnit([]byte) error
+	// WriteEPP writes an EPP response to the underlying connection. An error will
+	// be returned if the underlying connection is closed or an error occurs
+	// writing to the connection.
+	WriteEPP(epp.Body) error
 
 	// Close closes the connection.
+	// No attempt is made to wait for or clean up any transactions in flight.
 	Close() error
 }
 
-// Pipe implements [Conn] using an io.Reader and an io.Writer.
-type Pipe struct {
-	R io.Reader
-	W io.Writer
+type eppConn struct {
+	// reading synchronizes reads from conn.
+	reading sync.Mutex
+
+	// writing synchronizes writes to conn.
+	writing sync.Mutex
+
+	// conn holds the underlying data unit connection.
+	conn wire.Conn
+
+	schemas schema.Schemas
 }
 
-var _ Conn = &Pipe{}
+var _ Conn = &eppConn{}
 
-// ReadDataUnit reads a single EPP data unit from t, returning the payload bytes or an error.
-func (p *Pipe) ReadDataUnit() ([]byte, error) {
-	return ReadDataUnit(p.R)
-}
-
-// WriteDataUnit writes a single EPP data unit to t or returns an error.
-func (p *Pipe) WriteDataUnit(data []byte) error {
-	return WriteDataUnit(p.W, data)
-}
-
-// Close attempts to close both the underlying reader and writer.
-// It will return the first error encountered.
-func (p *Pipe) Close() error {
-	var rerr, werr error
-	if c, ok := p.R.(io.Closer); ok {
-		rerr = c.Close()
+// NewConn returns a new [Conn] using conn as the underlying transport.
+//
+// Messages from the peer will be decoded using [schemas.Schema] schemas.
+// If no schemas are provided, a set of reasonable defaults will be used.
+func NewConn(conn wire.Conn, schemas schema.Schemas) *eppConn {
+	return &eppConn{
+		conn:    conn,
+		schemas: schemas,
 	}
-	if r, ok := p.W.(io.Reader); ok && r == p.R {
-		return rerr
-	}
-	if c, ok := p.W.(io.Closer); ok {
-		werr = c.Close()
-	}
-	if rerr != nil {
-		return rerr
-	}
-	return werr
 }
 
-// NetConn implements [Conn] using a net.Conn.
-type NetConn struct {
-	net.Conn
+func (c *eppConn) ReadEPP() (epp.Body, error) {
+	c.reading.Lock()
+	data, err := c.conn.ReadDataUnit()
+	c.reading.Unlock()
+	if err != nil {
+		return nil, err
+	}
+	var e epp.EPP
+	err = schema.Unmarshal(data, &e, c.schemas)
+	return e.Body, err
 }
 
-var _ Conn = &NetConn{}
-
-// ReadDataUnit reads a single EPP data unit from t, returning the payload or an error.
-func (c *NetConn) ReadDataUnit() ([]byte, error) {
-	return ReadDataUnit(c.Conn)
+func (c *eppConn) WriteEPP(body epp.Body) error {
+	e := epp.EPP{Body: body}
+	x, err := xml.Marshal(&e) // TODO: implement schema.Marshal()
+	if err != nil {
+		return err
+	}
+	c.writing.Lock()
+	err = c.conn.WriteDataUnit(x)
+	c.writing.Unlock()
+	return err
 }
 
-// WriteDataUnit writes a single EPP data unit to t or returns an error.
-func (c *NetConn) WriteDataUnit(data []byte) error {
-	return WriteDataUnit(c.Conn, data)
+func (c *eppConn) Close() error {
+	return c.conn.Close()
 }
