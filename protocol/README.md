@@ -1,6 +1,6 @@
-## Overview
+# Overview
 
-Package protocol provides low-level [EPP](https://datatracker.ietf.org/doc/rfc5730/) client and server implementations.
+Package protocol implements low-level [EPP](https://datatracker.ietf.org/doc/rfc5730/) client and server connections.
 
 ## Usage
 
@@ -45,5 +45,3 @@ if err != nil {
 }
 // ...
 ```
-
-package protocol
