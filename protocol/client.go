@@ -31,7 +31,7 @@ type Client interface {
 	// the underlying connection is closed.
 	Hello(ctx context.Context) (*epp.Greeting, error)
 
-	// Greeting returns the last <greeting> recieved from the server.
+	// Greeting returns the last <greeting> received from the server.
 	// It blocks until the <greeting> is received, ctx is canceled, or
 	// the underlying connection is closed.
 	Greeting(ctx context.Context) (*epp.Greeting, error)
@@ -187,7 +187,7 @@ func (c *client) Hello(ctx context.Context) (*epp.Greeting, error) {
 	}
 }
 
-// Greeting returns the last <greeting> recieved from the server.
+// Greeting returns the last <greeting> received from the server.
 // It blocks until the <greeting> is received, ctx is canceled, or
 // the underlying connection is closed.
 func (c *client) Greeting(ctx context.Context) (*epp.Greeting, error) {
@@ -236,7 +236,7 @@ func (c *client) handleReply(body epp.Body) error {
 		// Always store the last <greeting> received from the server.
 		c.greeting.Store(body)
 
-		// Close hasGreeting this is the first <greeting> recieved.
+		// Close hasGreeting if this is the first <greeting> received.
 		select {
 		case <-c.hasGreeting:
 		default:

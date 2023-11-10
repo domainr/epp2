@@ -2,7 +2,7 @@
 //
 // The EPP wire protocol is a simple framing of UTF-8 encoded XML prefixed with a 4-byte,
 // big-endian header that expresses the total length of the EPP data unit (header + payload size).
-// EPP data units are sent and recieved via an underlying transport (typically a TLS connection).
+// EPP data units are sent and received via an underlying transport (typically a TLS connection).
 //
 // See https://datatracker.ietf.org/doc/rfc4934/ for more information.
 package wire
