@@ -144,10 +144,9 @@ func (c *client) Exchange(ctx context.Context, req epp.Body) (epp.Body, error) {
 	case <-c.hasGreeting:
 	}
 
+	// Queue a new transaction.
 	tx, cancel := newTransaction(ctx)
 	defer cancel()
-
-	// Queue the transaction.
 	c.transactions <- tx
 
 	// Write one request to the EPP connection.
