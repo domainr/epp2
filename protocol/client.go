@@ -15,31 +15,23 @@ import (
 //
 // [RFC 5730]: https://datatracker.ietf.org/doc/rfc5730/
 type Client interface {
-	// Command sends an EPP command and returns an EPP response.
+	// Exchange sends an EPP message and returns an EPP response.
 	// It blocks until a response is received, ctx is canceled, or
 	// the underlying connection is closed.
-	//
-	// To correlate it with a response, cmd must have a valid, unique
-	// transaction ID.
-	// TODO: should it assign a transaction ID if empty?
-	Command(ctx context.Context, cmd *epp.Command) (*epp.Response, error)
-
-	// Hello sends an EPP <hello> and returns the <greeting> received.
-	// It blocks until a <greeting> is received, ctx is canceled, or
-	// the underlying connection is closed.
-	Hello(ctx context.Context) (*epp.Greeting, error)
+	Exchange(context.Context, epp.Body) (epp.Body, error)
 
 	// Greeting returns the last <greeting> received from the server.
 	// It blocks until the <greeting> is received, ctx is canceled, or
 	// the underlying connection is closed.
-	Greeting(ctx context.Context) (*epp.Greeting, error)
+	Greeting(context.Context) (*epp.Greeting, error)
 
 	// Close closes the connection.
 	Close() error
 }
 
 type client struct {
-	conn Conn
+	conn    Conn
+	schemas schema.Schemas
 
 	// greeting stores the most recently received <greeting> from the server.
 	greeting atomic.Value
@@ -47,13 +39,10 @@ type client struct {
 	// hasGreeting is closed when the client receives an initial <greeting> from the server.
 	hasGreeting chan struct{}
 
-	schemas schema.Schemas
+	syncReplies chan reply
 
-	mHellos sync.Mutex
-	hellos  []transaction
-
-	mCommands sync.Mutex
-	commands  map[string]transaction
+	mu           sync.Mutex
+	transactions map[string]transaction
 }
 
 // NewClient returns a new EPP client using conn.
@@ -62,7 +51,7 @@ type client struct {
 func NewClient(conn Conn, schemas ...schema.Schema) Client {
 	c := newClient(conn, schemas)
 	// Read the initial <greeting> from the server.
-	go c.readEPP()
+	go c.readEPP(context.Background())
 	return c
 }
 
@@ -72,8 +61,9 @@ func newClient(conn Conn, schemas schema.Schemas) *client {
 	}
 	return &client{
 		conn:        conn,
-		hasGreeting: make(chan struct{}),
 		schemas:     schemas,
+		hasGreeting: make(chan struct{}),
+		syncReplies: make(chan reply),
 	}
 }
 
@@ -127,23 +117,29 @@ func (c *client) ServerTime(ctx context.Context) (time.Time, error) {
 	return g.ServerDate.Time, nil
 }
 
-// Command sends an EPP command and returns an EPP response.
+// Exchange sends [epp.Body] req and returns the response from the server.
 // It blocks until a response is received, ctx is canceled, or
 // the underlying connection is closed.
-func (c *client) Command(ctx context.Context, cmd *epp.Command) (*epp.Response, error) {
-	tx, cancel := newTransaction(ctx)
-	defer cancel()
-	err := c.pushCommand(cmd.ClientTransactionID, tx)
+func (c *client) Exchange(ctx context.Context, req epp.Body) (epp.Body, error) {
+	replies := c.syncReplies
+	if cmd, ok := req.(*epp.Command); ok {
+		if cmd.ClientTransactionID != "" {
+			tx, cancel := newTransaction(ctx)
+			defer cancel()
+			err := c.pushCommand(cmd.ClientTransactionID, tx)
+			if err != nil {
+				return nil, err
+			}
+			replies = tx.reply
+		}
+	}
+
+	err := c.conn.WriteEPP(req)
 	if err != nil {
 		return nil, err
 	}
 
-	err = c.conn.WriteEPP(cmd)
-	if err != nil {
-		return nil, err
-	}
-
-	err = c.readEPP()
+	err = c.readEPP(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -151,40 +147,8 @@ func (c *client) Command(ctx context.Context, cmd *epp.Command) (*epp.Response, 
 	select {
 	case <-ctx.Done():
 		return nil, ctx.Err()
-	case reply := <-tx.reply:
-		if r, ok := reply.body.(*epp.Response); ok {
-			return r, reply.err
-		}
-		return nil, reply.err
-	}
-}
-
-// Hello sends an EPP <hello> message to the server.
-// It will block until the next <greeting> message is received or ctx is canceled.
-func (c *client) Hello(ctx context.Context) (*epp.Greeting, error) {
-	tx, cancel := newTransaction(ctx)
-	defer cancel()
-	c.pushHello(tx)
-
-	var hello epp.Hello
-	err := c.conn.WriteEPP(&hello)
-	if err != nil {
-		return nil, err
-	}
-
-	err = c.readEPP()
-	if err != nil {
-		return nil, err
-	}
-
-	select {
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	case reply := <-tx.reply:
-		if g, ok := reply.body.(*epp.Greeting); ok {
-			return g, reply.err
-		}
-		return nil, reply.err
+	case r := <-replies:
+		return r.body, r.err
 	}
 }
 
@@ -206,31 +170,28 @@ func (c *client) Greeting(ctx context.Context) (*epp.Greeting, error) {
 
 // readEPP reads a single EPP data unit and dispatches it to an
 // awaiting transaction.
-func (c *client) readEPP() error {
+func (c *client) readEPP(ctx context.Context) error {
 	body, err := c.conn.ReadEPP()
 	if err != nil {
 		return err
 	}
-	return c.handleReply(body)
+	return c.handleReply(ctx, body)
 }
 
-func (c *client) handleReply(body epp.Body) error {
+func (c *client) handleReply(ctx context.Context, body epp.Body) error {
+	replies := c.syncReplies
 	switch body := body.(type) {
 	case *epp.Response:
 		id := body.TransactionID.Client
-		if id == "" {
-			// TODO: log when server responds with an empty client transaction ID.
-			return TransactionIDError{id}
-		}
-		t, ok := c.popCommand(id)
-		if !ok {
-			// TODO: log when server responds with unknown transaction ID.
-			// TODO: keep abandoned transactions around for some period of time.
-			return TransactionIDError{id}
-		}
-		err := c.replyTo(t, body, nil)
-		if err != nil {
-			return err
+		if id != "" {
+			tx, ok := c.popCommand(id)
+			if !ok {
+				// TODO: log when server responds with unknown transaction ID.
+				// TODO: keep abandoned transactions around for some period of time.
+				return TransactionIDError{id}
+			}
+			ctx = tx.ctx // TODO: should we track both contexts?
+			replies = tx.reply
 		}
 
 	case *epp.Greeting:
@@ -242,77 +203,42 @@ func (c *client) handleReply(body epp.Body) error {
 		case <-c.hasGreeting:
 		default:
 			close(c.hasGreeting)
+			// Return immediately rather than send to blocked replies channel.
+			return nil
 		}
-
-		// Pass the <greeting> to a caller waiting on it.
-		t, ok := c.popHello()
-		if ok {
-			err := c.replyTo(t, body, nil)
-			if err != nil {
-				return err
-			}
-		}
-
-	case *epp.Hello:
-		// TODO: log if server receives a <hello> or <command>.
-
-	case *epp.Command:
-		// TODO: log if server receives a <hello> or <command>.
 	}
 
-	return nil
-}
-
-func (c *client) replyTo(t transaction, body epp.Body, err error) error {
 	select {
-	case <-t.ctx.Done():
-		return t.ctx.Err()
-	case t.reply <- reply{body: body, err: err}:
+	case <-ctx.Done():
+		return ctx.Err()
+	case replies <- reply{body: body, err: nil}:
 	}
+
 	return nil
-}
-
-// pushHello adds a <hello> transaction to the end of the stack.
-func (c *client) pushHello(tx transaction) {
-	c.mHellos.Lock()
-	defer c.mHellos.Unlock()
-	c.hellos = append(c.hellos, tx)
-}
-
-// popHello pops the oldest <hello> transaction off the front of the stack.
-func (c *client) popHello() (transaction, bool) {
-	c.mHellos.Lock()
-	defer c.mHellos.Unlock()
-	if len(c.hellos) == 0 {
-		return transaction{}, false
-	}
-	tx := c.hellos[0]
-	c.hellos = c.hellos[1:]
-	return tx, true
 }
 
 // pushCommand adds a <command> transaction to the map of in-flight commands.
 func (c *client) pushCommand(id string, tx transaction) error {
-	c.mCommands.Lock()
-	defer c.mCommands.Unlock()
-	_, ok := c.commands[id]
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	_, ok := c.transactions[id]
 	if ok {
 		return DuplicateTransactionIDError{id}
 	}
-	if c.commands == nil {
-		c.commands = make(map[string]transaction)
+	if c.transactions == nil {
+		c.transactions = make(map[string]transaction)
 	}
-	c.commands[id] = tx
+	c.transactions[id] = tx
 	return nil
 }
 
 // popCommand removes a <command> transaction from the map of in-flight commands.
 func (c *client) popCommand(id string) (transaction, bool) {
-	c.mCommands.Lock()
-	defer c.mCommands.Unlock()
-	tx, ok := c.commands[id]
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	tx, ok := c.transactions[id]
 	if ok {
-		delete(c.commands, id)
+		delete(c.transactions, id)
 	}
 	return tx, ok
 }
@@ -322,19 +248,14 @@ func (c *client) popCommand(id string) (transaction, bool) {
 //
 // TODO: clean up stale or abandoned transactions on a regular basis?
 func (c *client) cleanup(err error) {
-	c.mHellos.Lock()
-	hellos := c.hellos
-	c.hellos = nil
-	c.mHellos.Unlock()
-	for _, tx := range hellos {
-		c.replyTo(tx, nil, err)
-	}
-
-	c.mCommands.Lock()
-	commands := c.commands
-	c.commands = nil
-	c.mCommands.Unlock()
+	c.mu.Lock()
+	commands := c.transactions
+	c.transactions = nil
+	c.mu.Unlock()
 	for _, tx := range commands {
-		c.replyTo(tx, nil, err)
+		select {
+		case <-tx.ctx.Done():
+		case tx.reply <- reply{err: err}:
+		}
 	}
 }

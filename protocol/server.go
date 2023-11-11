@@ -24,7 +24,9 @@ type Handler interface {
 	// HandleBody handles an unrecognized EPP body element.
 	EPPOther(ctx context.Context, body epp.Body) (epp.Body, error)
 
-	// TODO: should this interface just be this?
+	// ServeEPP accepts an EPP request and returns an EPP response.
+	// The body argument may be nil if the EPP request contained unrecognized XML.
+	// In this case, ServeEPP should return an error response.
 	ServeEPP(ctx context.Context, body epp.Body) (epp.Body, error)
 }
 
