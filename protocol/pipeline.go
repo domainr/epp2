@@ -23,7 +23,7 @@ type Request interface {
 }
 
 type ServerConn interface {
-	Next() (Request, error)
+	Next(context.Context) (Request, error)
 	Close(context.Context) error
 }
 
@@ -64,7 +64,7 @@ func (c *serverConn) Close(ctx context.Context) error {
 	return c.conn.Close()
 }
 
-func (c *serverConn) Next() (Request, error) {
+func (c *serverConn) Next(ctx context.Context) (Request, error) {
 	// Read EPP message
 	// Pack into a Request
 	// ...
