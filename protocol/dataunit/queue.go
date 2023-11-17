@@ -1,4 +1,4 @@
-package wire
+package dataunit
 
 type Writer interface {
 	WriteDataUnit([]byte) error

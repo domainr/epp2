@@ -5,7 +5,7 @@ import (
 	"encoding/xml"
 	"sync"
 
-	"github.com/domainr/epp2/protocol/wire"
+	"github.com/domainr/epp2/protocol/dataunit"
 	"github.com/domainr/epp2/schema"
 	"github.com/domainr/epp2/schema/epp"
 )
@@ -30,13 +30,13 @@ type ServerConn interface {
 type serverConn struct {
 	ctx     context.Context
 	cancel  func()
-	conn    wire.Conn
+	conn    dataunit.Conn
 	schemas schema.Schemas
 	idle    chan request
 	pending chan request
 }
 
-func NewServer(conn wire.Conn, opts ...Option) ServerConn {
+func NewServer(conn dataunit.Conn, opts ...Option) ServerConn {
 	const depth = 10 // depth must be >= 1
 
 	ctx, cancel := context.WithCancel(context.Background())

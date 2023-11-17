@@ -4,7 +4,7 @@ import (
 	"encoding/xml"
 	"sync"
 
-	"github.com/domainr/epp2/protocol/wire"
+	"github.com/domainr/epp2/protocol/dataunit"
 	"github.com/domainr/epp2/schema"
 	"github.com/domainr/epp2/schema/epp"
 )
@@ -35,7 +35,7 @@ type eppConn struct {
 	writing sync.Mutex
 
 	// conn holds the underlying data unit connection.
-	conn wire.Conn
+	conn dataunit.Conn
 
 	schemas schema.Schemas
 }
@@ -46,7 +46,7 @@ var _ Conn = &eppConn{}
 //
 // Messages from the peer will be decoded using [schemas.Schema] schemas.
 // If no schemas are provided, a set of reasonable defaults will be used.
-func NewConn(conn wire.Conn, schemas schema.Schemas) *eppConn {
+func NewConn(conn dataunit.Conn, schemas schema.Schemas) *eppConn {
 	return &eppConn{
 		conn:    conn,
 		schemas: schemas,

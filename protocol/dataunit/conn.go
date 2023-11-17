@@ -5,7 +5,7 @@
 // EPP data units are sent and received via an underlying transport (typically a TLS connection).
 //
 // See https://datatracker.ietf.org/doc/rfc4934/ for more information.
-package wire
+package dataunit
 
 import (
 	"encoding/binary"
