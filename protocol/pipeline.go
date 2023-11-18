@@ -109,7 +109,7 @@ func (c *serverConn) read() {
 			}
 		}
 
-		// Enqueue the request to write the response.
+		// Enqueue req for writing a response.
 		// This should never block.
 		c.pending <- req
 	}
@@ -145,6 +145,10 @@ func (c *serverConn) write() {
 			// TODO: handle error gracefully
 			return
 		}
+
+		// Return req to the idle queue.
+		// This should never block.
+		c.idle <- req
 	}
 }
 
