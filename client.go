@@ -4,37 +4,51 @@ import (
 	"context"
 	"crypto/tls"
 	"net"
-	"time"
 
+	"github.com/domainr/epp2/internal/config"
 	"github.com/domainr/epp2/protocol/dataunit"
 )
 
-type Option any
-
-func WithKeepalive(d time.Duration) Option {
-	return nil
-}
-
-func WithDialer(dialContext func(ctx context.Context, network, addr string) (net.Conn, error)) Option {
-	return nil
-}
-
-func WithTLS(cfg *tls.Config) Option {
-	return nil
-}
-
 type Client interface {
-	Login(username, password, newPassword string) error
-	Logout() error
+	// Login(username, password, newPassword string) error
+	// Logout() error
 	Close() error
 }
 
-type client struct{}
-
-func NewClient(conn dataunit.Conn, options ...Option) Client {
-	return nil
+type client struct {
+	conn dataunit.Conn
 }
 
-func Dial(addr string, options ...Option) (Client, error) {
-	return nil, nil
+func Dial(network, addr string, opts ...Options) (Client, error) {
+	return DialContext(context.Background(), network, addr, opts...)
+}
+
+func DialContext(ctx context.Context, network, addr string, opts ...Options) (Client, error) {
+	var cfg config.Config
+	cfg.Join(opts...)
+	dialer := cfg.Dialer
+	if dialer == nil {
+		dialer = &net.Dialer{
+			KeepAlive: cfg.KeepAlive,
+		}
+	}
+	conn, err := dialer.DialContext(ctx, network, addr)
+	if err != nil {
+		return nil, err
+	}
+	if cfg.TLSConfig != nil {
+		conn = tls.Client(conn, cfg.TLSConfig)
+	}
+	return NewClient(&dataunit.NetConn{Conn: conn}, &cfg), nil
+}
+
+func NewClient(conn dataunit.Conn, opts ...Options) Client {
+	return &client{
+		conn: conn,
+	}
+}
+
+func (c *client) Close() error {
+	// TODO: handle pending transactions
+	return c.conn.Close()
 }

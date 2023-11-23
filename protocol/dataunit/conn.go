@@ -13,17 +13,24 @@ import (
 	"net"
 )
 
+// Reader is the interface implemented by any type that can read an EPP data unit.
+type Reader interface {
+	// ReadDataUnit reads a single EPP data unit, returning the payload bytes or an error.
+	ReadDataUnit() ([]byte, error)
+}
+
+// Writer is the interface implemented by any type that can write an EPP data unit.
+type Writer interface {
+	// WriteDataUnit writes a single EPP data unit, returning any error.
+	WriteDataUnit([]byte) error
+}
+
 // Conn is the interface implemented by any type that can read and write EPP data units.
 // Concurrent operations on a Conn are implementation-specific and should
 // be protected by a synchronization mechanism.
 type Conn interface {
-	// ReadDataUnit reads a single EPP data unit, returning the payload bytes or an error.
-	ReadDataUnit() ([]byte, error)
-
-	// WriteDataUnit writes a single EPP data unit, returning any error.
-	WriteDataUnit([]byte) error
-
-	// Close closes the connection.
+	Reader
+	Writer
 	Close() error
 }
 
