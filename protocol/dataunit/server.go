@@ -87,8 +87,9 @@ func (c *server) writePending() error {
 		}
 
 		c.writing.Lock()
-		tx.err <- c.conn.WriteDataUnit(res)
+		err := c.conn.WriteDataUnit(res)
 		c.writing.Unlock()
+		tx.err <- err
 	}
 }
 
