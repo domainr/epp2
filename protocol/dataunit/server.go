@@ -2,150 +2,120 @@ package dataunit
 
 import (
 	"context"
+	"sync"
 )
 
-type ServerConn interface {
+// Server provides an ordered queue of client requests coupled with a [Writer]
+// to respond to the request. The Writer returned from Next can be called once.
+// Calling WriteDataUnit more than once is undefined.
+// Server enforces ordering of responses, writing each response in the same
+// order as the requests received from the client.
+// A Server is safe to call from multiple goroutines. Each client request
+// may be handled in a separate goroutine.
+type Server interface {
 	Next(context.Context) ([]byte, Writer, error)
 	Close() error
 }
 
-type serverConn struct {
+type server struct {
 	ctx     context.Context
 	cancel  func()
+	reading sync.Mutex
+	writing sync.Mutex
 	conn    Conn
-	idle    chan request
-	pending chan request
+	pending chan transaction
 }
 
-func NewServer(conn Conn, depth int) ServerConn {
+func NewServer(conn Conn, depth int) Server {
+	// TODO: accept a Context
 	ctx, cancel := context.WithCancel(context.Background())
 
-	c := &serverConn{
+	c := &server{
 		ctx:     ctx,
 		cancel:  cancel,
 		conn:    conn,
-		idle:    make(chan request, depth),
-		pending: make(chan request, depth),
+		pending: make(chan transaction, depth),
 	}
 
-	for i := 0; i < depth; i++ {
-		c.idle <- request{}
-	}
-
-	go c.read()
-	go c.write()
 	return c
 }
 
-func (c *serverConn) Close() error {
+func (c *server) Close() error {
 	// TODO: gracefully terminate?
 	c.cancel()
 	return c.conn.Close()
 }
 
-func (c *serverConn) Next(ctx context.Context) ([]byte, Writer, error) {
-	// Read EPP message
-	// Pack into a Request
-	// ...
-	// on Request.Respond():
-	// wait for turn in queue
-	// write response EPP message
-	// backpressure here?
-	return nil, nil, nil
+func (c *server) Next(ctx context.Context) ([]byte, Writer, error) {
+	return c.read(ctx)
 }
 
-func (c *serverConn) work() {
-	var current request
-	for {
-		select {
-		case <-c.ctx.Done():
-			return
-		case res := <-current.res:
-			// Write response
-			err := c.conn.WriteDataUnit(res)
-			if err != nil {
-				// TODO: handle error gracefully
-				return
-			}
-			c.idle <- current
-			select {
-			case current = <-c.pending:
-			}
-		case req := <-c.idle:
-			if req.res == nil {
-				req.res = make(chan []byte, 1)
-			}
-			req.ctx = c.ctx
-			req.data, req.err = c.conn.ReadDataUnit()
-			if current.res == nil {
-				current = req
-			} else {
-				c.pending <- req
-			}
-		}
+func (c *server) read(ctx context.Context) ([]byte, Writer, error) {
+	tx := transaction{
+		res: make(chan []byte, 1),
+		err: make(chan error, 1),
 	}
-}
-
-func (c *serverConn) read() {
-	for {
-		var req request
-		select {
-		case <-c.ctx.Done():
-			// TODO: respond to any pending requests with a shutting down error?
-			return
-		case req = <-c.idle:
+	f := writerFunc(func(data []byte) error {
+		tx.res <- data
+		err := c.writePending()
+		if err != nil {
+			return err
 		}
-
-		if req.res == nil {
-			req.res = make(chan []byte, 1)
-		}
-		req.ctx = c.ctx
-		req.data, req.err = c.conn.ReadDataUnit()
-
-		// Enqueue req for writing a response.
-		// This should never block.
-		c.pending <- req
+		return <-tx.err
+	})
+	// TODO: enqueue transaction before or after reading from conn?
+	select {
+	case <-ctx.Done():
+		return nil, f, ctx.Err()
+	case <-c.ctx.Done():
+		return nil, f, c.ctx.Err()
+	case c.pending <- tx:
 	}
+	c.reading.Lock()
+	data, err := c.conn.ReadDataUnit()
+	c.reading.Unlock()
+	return data, f, err
 }
 
-func (c *serverConn) write() {
+func (c *server) writePending() error {
 	for {
-		var req request
+		var tx transaction
 		select {
 		case <-c.ctx.Done():
 			// TODO: do something graceful here?
-			return
-		case req = <-c.pending:
+			return c.ctx.Err()
+		case tx = <-c.pending:
+		default:
+			// Nothing queued, return
+			return nil
 		}
 
 		var res []byte
 		select {
-		case <-req.ctx.Done():
+		case <-c.ctx.Done():
 			// TODO: do something graceful here?
-			return
-		case res = <-req.res:
+			err := c.ctx.Err()
+			tx.err <- err
+			return err
+		case res = <-tx.res:
 		}
 
+		c.writing.Lock()
 		err := c.conn.WriteDataUnit(res)
+		c.writing.Unlock()
 		if err != nil {
-			// TODO: handle error gracefully
-			return
+			tx.err <- err
 		}
-
-		// Return req to the idle queue.
-		// This should never block.
-		c.idle <- req
 	}
 }
 
-type request struct {
-	ctx  context.Context
-	data []byte
-	err  error
-	res  chan []byte
+type transaction struct {
+	res chan []byte
+	err chan error
 }
 
-func (r *request) WriteDataUnit(data []byte) error {
-	r.res <- data
-	return nil
+type writerFunc func(data []byte) error
+
+func (f writerFunc) WriteDataUnit(data []byte) error {
+	return f(data)
 }
