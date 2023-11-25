@@ -16,10 +16,6 @@ func TestServer(t *testing.T) {
 	for i := 0; i < 1000; i++ {
 		a := rand.Intn(len(str) - 1)
 		b := rand.Intn(len(str))
-		// if a == b {
-		// 	a = 0
-		// 	b = len(str)
-		// }
 		req := []byte(str[min(a, b):max(a, b)])
 		testRequest(t, clientConn, req, req)
 	}
@@ -32,7 +28,6 @@ func testRequest(t *testing.T, conn Conn, req []byte, res []byte) {
 		t.Errorf("WriteDataUnit(): err == %v", err)
 	}
 	got, err := conn.ReadDataUnit()
-	println(string(req), string(got))
 	if err != nil {
 		t.Errorf("ReadDataUnit(): err == %v", err)
 	}
