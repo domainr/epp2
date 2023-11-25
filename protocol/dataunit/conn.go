@@ -1,7 +1,7 @@
-// Package wire implements low-level encoding of the EPP wire protocol.
+// Package dataunit implements low-level encoding of the EPP data unit protocol.
 //
-// The EPP wire protocol is a simple framing of UTF-8 encoded XML prefixed with a 4-byte,
-// big-endian header that expresses the total length of the EPP data unit (header + payload size).
+// The data unit protocol is a simple framing of an XML payload prefixed with a 4-byte header
+// in network byte order that expresses the total length of the data unit (header + payload size).
 // EPP data units are sent and received via an underlying transport (typically a TLS connection).
 //
 // See https://datatracker.ietf.org/doc/rfc4934/ for more information.
