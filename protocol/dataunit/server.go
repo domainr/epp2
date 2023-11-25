@@ -40,37 +40,33 @@ func (c *server) read() ([]byte, Writer, error) {
 	}
 	f := writerFunc(func(data []byte) error {
 		tx.res <- data
-		err := c.writePending()
-		if err != nil {
-			return err
-		}
+		c.writePending()
 		return <-tx.err
 	})
-	// TODO: enqueue transaction before or after reading from conn?
-	c.pending <- tx
+	c.pending <- tx // blocks if pipeline is full
 	c.reading.Lock()
 	data, err := c.conn.ReadDataUnit()
 	c.reading.Unlock()
 	return data, f, err
 }
 
-func (c *server) writePending() error {
+func (c *server) writePending() {
 	for {
-		var tx transaction
 		select {
-		case tx = <-c.pending:
+		case tx := <-c.pending:
+			select {
+			case res := <-tx.res:
+				c.writing.Lock()
+				err := c.conn.WriteDataUnit(res)
+				c.writing.Unlock()
+				tx.err <- err
+			default:
+				return
+			}
 		default:
-			// Nothing queued, return
-			return nil
+			return // nothing queued
 		}
 
-		// TODO: add a default case here too?
-		res := <-tx.res
-
-		c.writing.Lock()
-		err := c.conn.WriteDataUnit(res)
-		c.writing.Unlock()
-		tx.err <- err
 	}
 }
 
