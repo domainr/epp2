@@ -1,6 +1,7 @@
 package dataunit
 
 import (
+	"bytes"
 	"testing"
 )
 
@@ -12,16 +13,21 @@ func TestServer(t *testing.T) {
 	s := NewServer(serverConn, 1)
 	go echoServer(t, s)
 
-	err := clientConn.WriteDataUnit([]byte("hello"))
+	echoRequest(t, clientConn, []byte("hello"))
+}
+
+// echoRequest sends one request to an echo server, and validates the response is correct.
+func echoRequest(t *testing.T, conn Conn, data []byte) {
+	err := conn.WriteDataUnit(data)
 	if err != nil {
 		t.Errorf("WriteDataUnit(): err == %v", err)
 	}
-	res, err := clientConn.ReadDataUnit()
+	res, err := conn.ReadDataUnit()
 	if err != nil {
 		t.Errorf("ReadDataUnit(): err == %v", err)
 	}
-	if string(res) != "hello" {
-		t.Errorf("ReadDataUnit(): got %s, expected %s", string(res), "world")
+	if !bytes.Equal(res, data) {
+		t.Errorf("ReadDataUnit(): got %s, expected %s", string(res), string(data))
 	}
 }
 
@@ -38,7 +44,6 @@ func echoServer(t *testing.T, s Server) {
 			return
 		}
 		err = w.WriteDataUnit(req)
-		println("replied")
 		if err != nil {
 			t.Errorf("echoServer: WriteDataUnit(): err == %v", err)
 			return
