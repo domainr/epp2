@@ -34,27 +34,36 @@ type Conn interface {
 	Close() error
 }
 
-// Pipe implements [Conn] using an io.Reader and an io.Writer.
-type Pipe struct {
+// Pipe returns two [Conn] instances that represent the two endpoints of an EPP connection.
+// It uses [io.Pipe] to synchronize reads and writes. Each Conn returned is identical,
+// either can be used as a client or a server endpoint.
+func Pipe() (Conn, Conn) {
+	r1, w1 := io.Pipe()
+	r2, w2 := io.Pipe()
+	return &pipe{r1, w2}, &pipe{r2, w1}
+}
+
+// pipe implements [Conn] using an io.Reader and an io.Writer.
+type pipe struct {
 	R io.Reader
 	W io.Writer
 }
 
-var _ Conn = &Pipe{}
+var _ Conn = &pipe{}
 
 // ReadDataUnit reads a single EPP data unit from t, returning the payload bytes or an error.
-func (p *Pipe) ReadDataUnit() ([]byte, error) {
+func (p *pipe) ReadDataUnit() ([]byte, error) {
 	return ReadDataUnit(p.R)
 }
 
 // WriteDataUnit writes a single EPP data unit to t or returns an error.
-func (p *Pipe) WriteDataUnit(data []byte) error {
+func (p *pipe) WriteDataUnit(data []byte) error {
 	return WriteDataUnit(p.W, data)
 }
 
 // Close attempts to close both the underlying reader and writer.
 // It will return the first error encountered.
-func (p *Pipe) Close() error {
+func (p *pipe) Close() error {
 	var rerr, werr error
 	if c, ok := p.R.(io.Closer); ok {
 		rerr = c.Close()
