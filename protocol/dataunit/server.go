@@ -1,7 +1,6 @@
 package dataunit
 
 import (
-	"context"
 	"sync"
 )
 
@@ -13,44 +12,37 @@ import (
 // A Server is safe to call from multiple goroutines. Each client request
 // may be handled in a separate goroutine.
 type Server interface {
-	Next(context.Context) ([]byte, Writer, error)
+	Next() ([]byte, Writer, error)
 	Close() error
 }
 
 type server struct {
-	ctx     context.Context
-	cancel  func()
 	reading sync.Mutex
 	writing sync.Mutex
 	conn    Conn
 	pending chan transaction
+	closed  chan struct{}
 }
 
 func NewServer(conn Conn, depth int) Server {
-	// TODO: accept a Context
-	ctx, cancel := context.WithCancel(context.Background())
-
-	c := &server{
-		ctx:     ctx,
-		cancel:  cancel,
+	return &server{
 		conn:    conn,
 		pending: make(chan transaction, depth),
+		closed:  make(chan struct{}),
 	}
-
-	return c
 }
 
 func (c *server) Close() error {
 	// TODO: gracefully terminate?
-	c.cancel()
+	close(c.closed)
 	return c.conn.Close()
 }
 
-func (c *server) Next(ctx context.Context) ([]byte, Writer, error) {
-	return c.read(ctx)
+func (c *server) Next() ([]byte, Writer, error) {
+	return c.read()
 }
 
-func (c *server) read(ctx context.Context) ([]byte, Writer, error) {
+func (c *server) read() ([]byte, Writer, error) {
 	tx := transaction{
 		res: make(chan []byte, 1),
 		err: make(chan error, 1),
@@ -65,10 +57,8 @@ func (c *server) read(ctx context.Context) ([]byte, Writer, error) {
 	})
 	// TODO: enqueue transaction before or after reading from conn?
 	select {
-	case <-ctx.Done():
-		return nil, f, ctx.Err()
-	case <-c.ctx.Done():
-		return nil, f, c.ctx.Err()
+	case <-c.closed:
+		return nil, f, ErrClosedConnection
 	case c.pending <- tx:
 	}
 	c.reading.Lock()
@@ -81,9 +71,8 @@ func (c *server) writePending() error {
 	for {
 		var tx transaction
 		select {
-		case <-c.ctx.Done():
-			// TODO: do something graceful here?
-			return c.ctx.Err()
+		case <-c.closed:
+			return ErrClosedConnection
 		case tx = <-c.pending:
 		default:
 			// Nothing queued, return
@@ -92,20 +81,14 @@ func (c *server) writePending() error {
 
 		var res []byte
 		select {
-		case <-c.ctx.Done():
-			// TODO: do something graceful here?
-			err := c.ctx.Err()
-			tx.err <- err
-			return err
+		case <-c.closed:
+			return ErrClosedConnection
 		case res = <-tx.res:
 		}
 
 		c.writing.Lock()
-		err := c.conn.WriteDataUnit(res)
+		tx.err <- c.conn.WriteDataUnit(res)
 		c.writing.Unlock()
-		if err != nil {
-			tx.err <- err
-		}
 	}
 }
 
