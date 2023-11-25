@@ -13,21 +13,21 @@ func TestServer(t *testing.T) {
 	s := NewServer(serverConn, 1)
 	go echoServer(t, s)
 
-	echoRequest(t, clientConn, []byte("hello"))
+	testRequest(t, clientConn, []byte("hello"), []byte("hello"))
 }
 
-// echoRequest sends one request to an echo server, and validates the response is correct.
-func echoRequest(t *testing.T, conn Conn, data []byte) {
-	err := conn.WriteDataUnit(data)
+// testRequest sends a request to an data unit server, and validates the response matches res.
+func testRequest(t *testing.T, conn Conn, req []byte, res []byte) {
+	err := conn.WriteDataUnit(req)
 	if err != nil {
 		t.Errorf("WriteDataUnit(): err == %v", err)
 	}
-	res, err := conn.ReadDataUnit()
+	got, err := conn.ReadDataUnit()
 	if err != nil {
 		t.Errorf("ReadDataUnit(): err == %v", err)
 	}
-	if !bytes.Equal(res, data) {
-		t.Errorf("ReadDataUnit(): got %s, expected %s", string(res), string(data))
+	if !bytes.Equal(got, res) {
+		t.Errorf("ReadDataUnit(): got %s, expected %s", string(got), string(res))
 	}
 }
 
