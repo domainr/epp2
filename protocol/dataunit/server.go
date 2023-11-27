@@ -19,14 +19,15 @@ type server struct {
 	reading sync.Mutex
 	writing sync.Mutex
 	conn    Conn
-	pending chan transaction
+
+	mu      sync.Mutex
+	in      uint64
+	out     uint64
+	pending []transaction
 }
 
-func NewServer(conn Conn, depth int) Server {
-	return &server{
-		conn:    conn,
-		pending: make(chan transaction, depth),
-	}
+func NewServer(conn Conn) Server {
+	return &server{conn: conn}
 }
 
 func (c *server) Next() ([]byte, Writer, error) {
@@ -34,44 +35,72 @@ func (c *server) Next() ([]byte, Writer, error) {
 }
 
 func (c *server) read() ([]byte, Writer, error) {
-	tx := transaction{
-		res: make(chan []byte, 1),
-		err: make(chan error, 1),
-	}
-	f := writerFunc(func(data []byte) error {
-		tx.res <- data
-		c.writePending()
-		return <-tx.err
-	})
-	c.pending <- tx // blocks if pipeline is full
 	c.reading.Lock()
+	defer c.reading.Unlock()
+
+	c.mu.Lock()
+	n := c.in
+	c.in += 1
+	c.mu.Unlock()
+
+	f := writerFunc(func(data []byte) error {
+		ch, err := c.respond(n, data)
+		if ch == nil {
+			return err
+		}
+		return <-ch
+	})
 	data, err := c.conn.ReadDataUnit()
-	c.reading.Unlock()
 	return data, f, err
 }
 
-func (c *server) writePending() {
-	for {
-		select {
-		case tx := <-c.pending:
-			select {
-			case res := <-tx.res:
-				c.writing.Lock()
-				err := c.conn.WriteDataUnit(res)
-				c.writing.Unlock()
-				tx.err <- err
-			default:
-				return
-			}
-		default:
-			return // nothing queued
-		}
+func (c *server) respond(n uint64, data []byte) (<-chan error, error) {
+	const capMax = 32
 
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	depth := int(c.in - c.out - 1)
+	n = n - c.out
+	i := int(n - c.out)
+
+	// If this isn’t the oldest pending transaction, queue the response.
+	if i > 0 {
+		if depth > len(c.pending) {
+			c.pending = append(c.pending, make([]transaction, depth)...)
+		}
+		ch := make(chan error, 1)
+		c.pending[n-1] = transaction{data, ch}
+		return ch, nil
 	}
+
+	// Write responses
+	c.writing.Lock()
+	defer c.writing.Unlock()
+	err := c.conn.WriteDataUnit(data)
+	if err != nil {
+		return nil, err
+	}
+	c.out += 1
+	var writes uint64
+	for _, tx := range c.pending {
+		if tx.res == nil {
+			break
+		}
+		err := c.conn.WriteDataUnit(data)
+		tx.err <- err
+		if err != nil {
+			break
+		}
+		writes += 1
+	}
+	c.pending = c.pending[writes:len(c.pending):min(cap(c.pending), capMax)]
+	c.out += writes
+
+	return nil, nil
 }
 
 type transaction struct {
-	res chan []byte
+	res []byte
 	err chan error
 }
 

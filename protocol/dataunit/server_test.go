@@ -9,7 +9,7 @@ import (
 func TestServer(t *testing.T) {
 	clientConn, serverConn := Pipe()
 
-	s := NewServer(serverConn, 100)
+	s := NewServer(serverConn)
 	go echoServer(t, s)
 
 	const str = "nomagicnumbersupmysleeverightnow"
