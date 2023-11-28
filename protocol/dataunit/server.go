@@ -59,14 +59,12 @@ func (c *server) respond(n uint64, data []byte) (<-chan error, error) {
 
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	depth := int(c.in - c.out - 1)
-	n = n - c.out
 	i := int(n - c.out)
 
 	// If this isn’t the oldest pending transaction, queue the response.
 	if i > 0 {
-		if depth > len(c.pending) {
-			c.pending = append(c.pending, make([]transaction, depth)...)
+		if i > len(c.pending) {
+			c.pending = append(c.pending, make([]transaction, i-len(c.pending))...)
 		}
 		ch := make(chan error, 1)
 		c.pending[i-1] = transaction{data, ch}
@@ -81,7 +79,7 @@ func (c *server) respond(n uint64, data []byte) (<-chan error, error) {
 		return nil, err
 	}
 	c.out += 1
-	var writes uint64
+	var writes int
 	for _, tx := range c.pending {
 		if tx.res == nil {
 			break
@@ -93,8 +91,12 @@ func (c *server) respond(n uint64, data []byte) (<-chan error, error) {
 		}
 		writes += 1
 	}
-	c.pending = c.pending[writes:len(c.pending):min(cap(c.pending), capMax)]
-	c.out += writes
+	if writes == len(c.pending) {
+		c.pending = c.pending[:0:min(cap(c.pending), capMax)]
+	} else {
+		c.pending = c.pending[writes:]
+	}
+	c.out += uint64(writes)
 
 	return nil, nil
 }
