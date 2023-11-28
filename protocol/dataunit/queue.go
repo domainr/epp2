@@ -109,3 +109,76 @@ type writerFunc func(data []byte) error
 func (f writerFunc) WriteDataUnit(data []byte) error {
 	return f(data)
 }
+
+// Sender provides an ordered queue of client requests on a data unit connection.
+// A Sender is safe to call from multiple goroutines. Each call to SendDataUnit
+// will block until the peer responds with a data unit or the underlying connection is closed.
+type Sender interface {
+	SendDataUnit([]byte) ([]byte, error)
+}
+
+type sender struct {
+	writing sync.Mutex
+	reading sync.Mutex
+	conn    Conn
+
+	queueing sync.Mutex
+	queue    []chan result
+}
+
+func NewSender(conn Conn) Sender {
+	return &sender{conn: conn}
+}
+
+func (s *sender) SendDataUnit(data []byte) ([]byte, error) {
+	return s.exchange(data)
+}
+
+func (s *sender) exchange(data []byte) ([]byte, error) {
+	ch, err := s.write(data)
+	if err != nil {
+		return nil, err
+	}
+	s.read()
+	res := <-ch
+	return res.data, res.err
+}
+
+func (s *sender) write(data []byte) (<-chan result, error) {
+	s.writing.Lock()
+	defer s.writing.Unlock()
+	err := s.conn.WriteDataUnit(data)
+	if err != nil {
+		return nil, err
+	}
+	return s.enqueue(), nil
+}
+
+func (s *sender) read() {
+	s.reading.Lock()
+	defer s.reading.Unlock()
+	ch := s.dequeue()
+	data, err := s.conn.ReadDataUnit()
+	ch <- result{data, err}
+}
+
+func (s *sender) enqueue() chan result {
+	s.queueing.Lock()
+	defer s.queueing.Unlock()
+	ch := make(chan result, 1)
+	s.queue = append(s.queue, ch)
+	return ch
+}
+
+func (s *sender) dequeue() chan result {
+	s.queueing.Lock()
+	defer s.queueing.Unlock()
+	ch := s.queue[0]
+	s.queue = s.queue[1:]
+	return ch
+}
+
+type result struct {
+	data []byte
+	err  error
+}
