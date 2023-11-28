@@ -17,13 +17,14 @@ type Server interface {
 
 type server struct {
 	reading sync.Mutex
-	writing sync.Mutex
-	conn    Conn
-
-	mu      sync.Mutex
 	in      uint64
+
+	writing sync.Mutex
 	out     uint64
 	pending []transaction
+
+	// Reads and writes are protected by reading and writing, respectively.
+	conn Conn
 }
 
 func NewServer(conn Conn) Server {
@@ -38,10 +39,8 @@ func (c *server) read() ([]byte, Writer, error) {
 	c.reading.Lock()
 	defer c.reading.Unlock()
 
-	c.mu.Lock()
 	n := c.in
 	c.in += 1
-	c.mu.Unlock()
 
 	f := writerFunc(func(data []byte) error {
 		ch, err := c.respond(n, data)
@@ -55,10 +54,9 @@ func (c *server) read() ([]byte, Writer, error) {
 }
 
 func (c *server) respond(n uint64, data []byte) (<-chan error, error) {
-	const capMax = 32
+	c.writing.Lock()
+	defer c.writing.Unlock()
 
-	c.mu.Lock()
-	defer c.mu.Unlock()
 	i := int(n - c.out)
 
 	// If this isn’t the oldest pending transaction, queue the response.
@@ -72,8 +70,6 @@ func (c *server) respond(n uint64, data []byte) (<-chan error, error) {
 	}
 
 	// Write responses
-	c.writing.Lock()
-	defer c.writing.Unlock()
 	err := c.conn.WriteDataUnit(data)
 	if err != nil {
 		return nil, err
@@ -100,6 +96,8 @@ func (c *server) respond(n uint64, data []byte) (<-chan error, error) {
 
 	return nil, nil
 }
+
+const capMax = 32
 
 type transaction struct {
 	res []byte
