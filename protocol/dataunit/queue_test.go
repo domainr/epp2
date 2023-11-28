@@ -9,7 +9,7 @@ import (
 func TestServer(t *testing.T) {
 	clientConn, serverConn := Pipe()
 
-	s := NewServer(serverConn)
+	s := NewReceiver(serverConn)
 	go echoServer(t, s)
 
 	const str = "nomagicnumbersupmysleeverightnow"
@@ -38,12 +38,12 @@ func testRequest(t *testing.T, conn Conn, req []byte, res []byte) {
 
 // echoServer implements a rudimentary EPP data unit server that echoes
 // back each received request.
-func echoServer(t *testing.T, s Server) {
+func echoServer(t *testing.T, s Receiver) {
 	for {
 		if t.Failed() {
 			return
 		}
-		req, w, err := s.Next()
+		req, w, err := s.ReceiveDataUnit()
 		if err != nil {
 			t.Errorf("echoServer: Next(): err == %v", err)
 			return
