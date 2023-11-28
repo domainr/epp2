@@ -69,7 +69,7 @@ func (c *server) respond(n uint64, data []byte) (<-chan error, error) {
 			c.pending = append(c.pending, make([]transaction, depth)...)
 		}
 		ch := make(chan error, 1)
-		c.pending[n-1] = transaction{data, ch}
+		c.pending[i-1] = transaction{data, ch}
 		return ch, nil
 	}
 
