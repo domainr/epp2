@@ -54,13 +54,13 @@ func echoServer(t *testing.T, s Server) {
 			break
 		}
 		sem <- struct{}{}
-		req, w, err := s.ReceiveDataUnit()
-		if err != nil {
-			t.Errorf("echoServer: ReceiveDataUnit(): err == %v", err)
-			t.Fail()
-		}
 		go func() {
 			defer func() { <-sem }()
+			req, w, err := s.ReceiveDataUnit()
+			if err != nil {
+				t.Errorf("echoServer: ReceiveDataUnit(): err == %v", err)
+				t.Fail()
+			}
 			time.Sleep(randDuration(10 * time.Millisecond))
 			err = w.WriteDataUnit(req)
 			if err != nil {
