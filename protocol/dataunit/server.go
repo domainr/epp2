@@ -84,7 +84,7 @@ func (s *server) respond(n uint64, data []byte) (<-chan error, error) {
 		if tx.res == nil {
 			break
 		}
-		err := s.conn.WriteDataUnit(data)
+		err := s.conn.WriteDataUnit(tx.res)
 		tx.err <- err
 		if err != nil {
 			break
