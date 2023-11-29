@@ -6,7 +6,8 @@ import (
 
 // Client provides an ordered queue of client requests on a data unit connection.
 // Each call to SendDataUnit will block until the peer responds or the underlying connection is closed.
-// A Client is safe to call from multiple goroutines. Requests will be processed in strict FIFO order.
+// Requests will be processed in strict FIFO order.
+// A Client is safe to call from multiple goroutines.
 type Client interface {
 	SendDataUnit([]byte) ([]byte, error)
 }
