@@ -1,6 +1,9 @@
 package dataunit
 
-import "sync"
+import (
+	"fmt"
+	"sync"
+)
 
 // Client provides an ordered queue of client requests on a data unit connection.
 // Each call to SendDataUnit will block until the peer responds or the underlying connection is closed.
@@ -33,6 +36,7 @@ func (c *client) exchange(data []byte) ([]byte, error) {
 	}
 	c.read()
 	res := <-ch
+	fmt.Printf("client: %s %s\n", string(data), string(res.data))
 	return res.data, res.err
 }
 
