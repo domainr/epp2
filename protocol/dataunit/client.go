@@ -58,7 +58,7 @@ func (c *client) read() {
 	ch <- result{data, err}
 }
 
-func (c *client) enqueue() chan result {
+func (c *client) enqueue() <-chan result {
 	c.queueing.Lock()
 	defer c.queueing.Unlock()
 	ch := make(chan result, 1)
@@ -66,7 +66,7 @@ func (c *client) enqueue() chan result {
 	return ch
 }
 
-func (c *client) dequeue() chan result {
+func (c *client) dequeue() chan<- result {
 	c.queueing.Lock()
 	defer c.queueing.Unlock()
 	ch := c.queue[0]
