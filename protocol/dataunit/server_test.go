@@ -3,36 +3,36 @@ package dataunit
 import (
 	"bytes"
 	"math/rand"
+	"strconv"
 	"testing"
+	"time"
 )
 
 func TestServer(t *testing.T) {
 	clientConn, serverConn := Pipe()
 
+	c := NewClient(clientConn)
+
 	s := NewServer(serverConn)
 	go echoServer(t, s)
 
-	const str = "nomagicnumbersupmysleeverightnow"
-	for i := 0; i < 1000; i++ {
-		a := rand.Intn(len(str) - 1)
-		b := rand.Intn(len(str))
-		req := []byte(str[min(a, b):max(a, b)])
-		testRequest(t, clientConn, req, req)
-	}
-}
+	sem := make(chan struct{}, 100)
 
-// testRequest sends a request to an data unit server, and validates the response matches res.
-func testRequest(t *testing.T, conn Conn, req []byte, res []byte) {
-	err := conn.WriteDataUnit(req)
-	if err != nil {
-		t.Errorf("WriteDataUnit(): err == %v", err)
-	}
-	got, err := conn.ReadDataUnit()
-	if err != nil {
-		t.Errorf("ReadDataUnit(): err == %v", err)
-	}
-	if !bytes.Equal(got, res) {
-		t.Errorf("ReadDataUnit(): got %s, expected %s", string(got), string(res))
+	for i := 0; i < 1000; i++ {
+		i := i
+		sem <- struct{}{}
+		go func() {
+			time.Sleep(randDuration(10 * time.Millisecond))
+			req := []byte(strconv.FormatInt(int64(i), 10))
+			res, err := c.SendDataUnit(req)
+			if err != nil {
+				t.Errorf("SendDataUnit(): err == %v", err)
+			}
+			if !bytes.Equal(req, res) {
+				t.Errorf("SendDataUnit(): got %s, expected %s", string(req), string(res))
+			}
+			<-sem
+		}()
 	}
 }
 
@@ -48,10 +48,15 @@ func echoServer(t *testing.T, s Server) {
 			t.Errorf("echoServer: Next(): err == %v", err)
 			return
 		}
+		time.Sleep(randDuration(10 * time.Millisecond))
 		err = w.WriteDataUnit(req)
 		if err != nil {
 			t.Errorf("echoServer: WriteDataUnit(): err == %v", err)
 			return
 		}
 	}
+}
+
+func randDuration(max time.Duration) time.Duration {
+	return time.Duration(rand.Int63n(int64(max)))
 }
