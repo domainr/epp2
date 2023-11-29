@@ -1,7 +1,6 @@
 package dataunit
 
 import (
-	"fmt"
 	"sync"
 )
 
@@ -36,7 +35,6 @@ func (c *client) exchange(data []byte) ([]byte, error) {
 	}
 	c.read()
 	res := <-ch
-	fmt.Printf("client: %s %s\n", string(data), string(res.data))
 	return res.data, res.err
 }
 

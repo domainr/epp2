@@ -1,7 +1,6 @@
 package dataunit
 
 import (
-	"fmt"
 	"sync"
 )
 
@@ -51,15 +50,12 @@ func (s *server) read() ([]byte, Writer, error) {
 		return <-ch
 	})
 	data, err := s.conn.ReadDataUnit()
-	fmt.Printf("server request %d: %s\n", n, string(data))
 	return data, f, err
 }
 
 func (s *server) respond(n uint64, data []byte) (<-chan error, error) {
 	s.writing.Lock()
 	defer s.writing.Unlock()
-
-	fmt.Printf("server response %d: %s\n", n, string(data))
 
 	i := int(n - s.writes)
 
