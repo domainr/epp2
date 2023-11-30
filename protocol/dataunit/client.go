@@ -14,11 +14,12 @@ type Client interface {
 
 type client struct {
 	writing sync.Mutex
-	reading sync.Mutex
-	conn    Conn
+	pending []chan result
 
-	queueing sync.Mutex
-	queue    []chan result
+	reading sync.Mutex
+
+	// Reads and writes are protected by reading and writing, respectively.
+	conn Conn
 }
 
 func NewClient(conn Conn) Client {
@@ -30,47 +31,37 @@ func (c *client) SendDataUnit(data []byte) ([]byte, error) {
 }
 
 func (c *client) exchange(data []byte) ([]byte, error) {
-	ch, err := c.write(data)
+	head, tail, err := c.write(data)
 	if err != nil {
 		return nil, err
 	}
-	c.read()
-	res := <-ch
+	c.read(head)
+	res := <-tail
 	return res.data, res.err
 }
 
-func (c *client) write(data []byte) (<-chan result, error) {
+func (c *client) write(data []byte) (head chan<- result, tail <-chan result, err error) {
 	c.writing.Lock()
 	defer c.writing.Unlock()
-	err := c.conn.WriteDataUnit(data)
+	err = c.conn.WriteDataUnit(data)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return c.enqueue(), nil
+
+	// TODO: optimize this
+	chtail := make(chan result, 1)
+	c.pending = append(c.pending, chtail)
+	head = c.pending[0]
+	c.pending = c.pending[1:]
+
+	return head, chtail, err
 }
 
-func (c *client) read() {
+func (c *client) read(ch chan<- result) {
 	c.reading.Lock()
 	defer c.reading.Unlock()
-	ch := c.dequeue()
 	data, err := c.conn.ReadDataUnit()
 	ch <- result{data, err}
-}
-
-func (c *client) enqueue() <-chan result {
-	c.queueing.Lock()
-	defer c.queueing.Unlock()
-	ch := make(chan result, 1)
-	c.queue = append(c.queue, ch)
-	return ch
-}
-
-func (c *client) dequeue() chan<- result {
-	c.queueing.Lock()
-	defer c.queueing.Unlock()
-	ch := c.queue[0]
-	c.queue = c.queue[1:]
-	return ch
 }
 
 type result struct {
