@@ -51,7 +51,13 @@ func (cfg *Config) Join(opts ...Options) {
 	}
 }
 
-func GetOption[T any](opts Options, setter func(T) Options) (T, bool) {
+type Setter1[T any] func(T) Options
+type SetterN[T any] func(...T) Options
+type Setter[T any] interface {
+	Setter1[T] | SetterN[T]
+}
+
+func GetOption[T any, F Setter[T]](opts Options, setter F) (T, bool) {
 	// TODO
 	var zero T
 	return zero, false
