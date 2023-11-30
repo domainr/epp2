@@ -42,11 +42,9 @@ func (c *client) exchange(data []byte) ([]byte, error) {
 func (c *client) write(data []byte) (<-chan result, error) {
 	c.writing.Lock()
 	defer c.writing.Unlock()
+	ch := c.enqueue()
 	err := c.conn.WriteDataUnit(data)
-	if err != nil {
-		return nil, err
-	}
-	return c.enqueue(), nil
+	return ch, err
 }
 
 func (c *client) read() {
