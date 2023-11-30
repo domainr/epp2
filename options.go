@@ -1,6 +1,7 @@
 package epp
 
 import (
+	"context"
 	"crypto/tls"
 	"time"
 
@@ -14,6 +15,10 @@ func JoinOptions(opts ...Options) Options {
 	var cfg config.Config
 	cfg.Join(opts...)
 	return &cfg
+}
+
+func WithContext(ctx context.Context) Options {
+	return config.Context{Context: ctx}
 }
 
 func WithKeepAlive(d time.Duration) Options {

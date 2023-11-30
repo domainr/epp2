@@ -16,6 +16,7 @@ type Options interface {
 // Config is an optimized form of EPP options,
 // suitable for passing via the call stack.
 type Config struct {
+	Context   context.Context
 	KeepAlive time.Duration
 	Timeout   time.Duration
 	Dialer    ContextDialer
@@ -30,6 +31,8 @@ func (cfg *Config) Join(opts ...Options) {
 		switch src := src.(type) {
 		case nil:
 			continue
+		case Context:
+			cfg.Context = src.Context
 		case KeepAlive:
 			cfg.KeepAlive = time.Duration(src)
 		case Timeout:
@@ -51,13 +54,15 @@ func GetOption[T any](opts Options, setter func(T) Options) (T, bool) {
 }
 
 type (
-	KeepAlive time.Duration           // epp.WithKeepAlive
-	Timeout   time.Duration           // epp.WithTimeout
-	Dialer    struct{ ContextDialer } // epp.WithDialer
-	TLSConfig tls.Config              // epp.WithTLS
-	Pipeline  int                     // epp.WithPipeline
+	Context   struct{ context.Context } // epp.WithContext
+	KeepAlive time.Duration             // epp.WithKeepAlive
+	Timeout   time.Duration             // epp.WithTimeout
+	Dialer    struct{ ContextDialer }   // epp.WithDialer
+	TLSConfig tls.Config                // epp.WithTLS
+	Pipeline  int                       // epp.WithPipeline
 )
 
+func (Context) EPPOptions(internal.Internal)    {}
 func (KeepAlive) EPPOptions(internal.Internal)  {}
 func (Timeout) EPPOptions(internal.Internal)    {}
 func (Dialer) EPPOptions(internal.Internal)     {}
