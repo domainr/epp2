@@ -3,7 +3,6 @@ package protocol
 import (
 	"context"
 	"sync/atomic"
-	"time"
 
 	"github.com/domainr/epp2/errors"
 	"github.com/domainr/epp2/schema"
@@ -79,43 +78,6 @@ func (c *client) Close() error {
 }
 
 // TODO: implement Shutdown(ctx) for graceful shutdown of a client connection?
-
-// ServerConfig returns the server configuration described in a <greeting> message.
-// Will block until the an initial <greeting> is received, or ctx is canceled.
-//
-// TODO: move this to epp.Client.
-// func (c *client) ServerConfig(ctx context.Context) (Config, error) {
-// 	g, err := c.Greeting(ctx)
-// 	if err != nil {
-// 		return Config{}, err
-// 	}
-// 	return configFromGreeting(g), nil
-// }
-
-// ServerName returns the most recently received server name.
-// Will block until an initial <greeting> is received, or ctx is canceled.
-//
-// TODO: move this to epp.Client.
-func (c *client) ServerName(ctx context.Context) (string, error) {
-	g, err := c.Greeting(ctx)
-	if err != nil {
-		return "", err
-	}
-	return g.ServerName, nil
-}
-
-// ServerTime returns the most recently received timestamp from the server.
-// Will block until an initial <greeting> is received, or ctx is canceled.
-//
-// TODO: move this to epp.Client.
-// TODO: what is used for?
-func (c *client) ServerTime(ctx context.Context) (time.Time, error) {
-	g, err := c.Greeting(ctx)
-	if err != nil {
-		return time.Time{}, err
-	}
-	return g.ServerDate.Time, nil
-}
 
 // Greeting returns the last <greeting> received from the server.
 // It blocks until the <greeting> is received, ctx is canceled, or
