@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-func TestServer(t *testing.T) {
+func TestEchoClientAndServer(t *testing.T) {
 	clientConn, serverConn := Pipe()
 
 	c := NewClient(clientConn)
