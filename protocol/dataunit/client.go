@@ -14,12 +14,11 @@ type Client interface {
 
 type client struct {
 	writing sync.Mutex
-	pending []chan result
-
 	reading sync.Mutex
+	conn    Conn
 
-	// Reads and writes are protected by reading and writing, respectively.
-	conn Conn
+	queueing sync.Mutex
+	queue    []chan result
 }
 
 func NewClient(conn Conn) Client {
@@ -31,52 +30,47 @@ func (c *client) SendDataUnit(data []byte) ([]byte, error) {
 }
 
 func (c *client) exchange(data []byte) ([]byte, error) {
-	head, tail, err := c.write(data)
+	ch, err := c.write(data)
 	if err != nil {
 		return nil, err
 	}
-
-	c.reading.Lock()
-	defer c.reading.Unlock()
-	data, err = c.conn.ReadDataUnit()
-	if head == nil {
-		return data, err
-	}
-
-	head <- result{data, err}
-	res := <-tail
+	c.read()
+	res := <-ch
 	return res.data, res.err
 }
 
-func (c *client) write(data []byte) (head chan<- result, tail <-chan result, err error) {
+func (c *client) write(data []byte) (<-chan result, error) {
 	c.writing.Lock()
 	defer c.writing.Unlock()
-	err = c.conn.WriteDataUnit(data)
+	err := c.conn.WriteDataUnit(data)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
+	return c.enqueue(), nil
+}
 
-	// println("queue depth", len(c.pending))
+func (c *client) read() {
+	c.reading.Lock()
+	defer c.reading.Unlock()
+	ch := c.dequeue()
+	data, err := c.conn.ReadDataUnit()
+	ch <- result{data, err}
+}
 
-	// Short circuit queue depth 0
-	if len(c.pending) == 0 {
-		return nil, nil, nil
-	}
-	head = c.pending[0]
-	chtail := make(chan result, 1)
+func (c *client) enqueue() <-chan result {
+	c.queueing.Lock()
+	defer c.queueing.Unlock()
+	ch := make(chan result, 1)
+	c.queue = append(c.queue, ch)
+	return ch
+}
 
-	// Other queue depths
-	if len(c.pending) == 1 {
-		c.pending[0] = chtail
-	} else if len(c.pending) == 2 {
-		c.pending[0] = c.pending[1]
-		c.pending[1] = chtail
-	} else {
-		c.pending = c.pending[1:]
-		c.pending = append(c.pending, chtail)
-	}
-
-	return head, chtail, err
+func (c *client) dequeue() chan<- result {
+	c.queueing.Lock()
+	defer c.queueing.Unlock()
+	ch := c.queue[0]
+	c.queue = c.queue[1:]
+	return ch
 }
 
 type result struct {
