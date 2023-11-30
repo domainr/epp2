@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/domainr/epp2/internal/config"
+	"github.com/domainr/epp2/schema"
 )
 
 // Options configure [TODO] with specific features.
@@ -42,4 +43,8 @@ func WithTLS(cfg *tls.Config) Options {
 
 func WithPipeline(depth int) Options {
 	return config.Pipeline(depth)
+}
+
+func WithSchema(schemas ...schema.Schema) Options {
+	return config.Schemas(schemas)
 }

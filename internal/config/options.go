@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/domainr/epp2/internal"
+	"github.com/domainr/epp2/schema"
 )
 
 type Options interface {
@@ -22,6 +23,7 @@ type Config struct {
 	Dialer    ContextDialer
 	TLSConfig *tls.Config
 	Pipeline  int
+	Schemas   schema.Schemas
 }
 
 func (*Config) EPPOptions(internal.Internal) {}
@@ -43,6 +45,8 @@ func (cfg *Config) Join(opts ...Options) {
 			cfg.TLSConfig = (*tls.Config)(src)
 		case Pipeline:
 			cfg.Pipeline = int(src)
+		case Schemas:
+			cfg.Schemas = append(cfg.Schemas, schema.Schemas(src)...)
 		}
 	}
 }
@@ -60,6 +64,7 @@ type (
 	Dialer    struct{ ContextDialer }   // epp.WithDialer
 	TLSConfig tls.Config                // epp.WithTLS
 	Pipeline  int                       // epp.WithPipeline
+	Schemas   schema.Schemas            // epp.WithSchema
 )
 
 func (Context) EPPOptions(internal.Internal)    {}
@@ -68,6 +73,7 @@ func (Timeout) EPPOptions(internal.Internal)    {}
 func (Dialer) EPPOptions(internal.Internal)     {}
 func (*TLSConfig) EPPOptions(internal.Internal) {}
 func (Pipeline) EPPOptions(internal.Internal)   {}
+func (Schemas) EPPOptions(internal.Internal)    {}
 
 // ContextDialer is any type with a DialContext method that returns ([net.Conn], [error]).
 type ContextDialer interface {
