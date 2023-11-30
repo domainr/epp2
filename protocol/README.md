@@ -25,23 +25,3 @@ if err != nil {
 }
 // ...
 ```
-
-Send an EPP `<hello>` and wait for the new `<greeting>`:
-
-```go
-greeting, err := client.Hello(context.Background())
-if err != nil {
-	// handle error
-}
-// ...
-```
-
-Process an EPP `<command>` and wait for a `<response>`:
-
-```go
-greeting, err := client.Command(context.Background(), &epp.Command{...})
-if err != nil {
-	// handle error
-}
-// ...
-```
