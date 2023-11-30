@@ -35,7 +35,15 @@ func (c *client) exchange(data []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	c.read(head)
+
+	c.reading.Lock()
+	defer c.reading.Unlock()
+	data, err = c.conn.ReadDataUnit()
+	if head == nil {
+		return data, err
+	}
+
+	head <- result{data, err}
 	res := <-tail
 	return res.data, res.err
 }
@@ -48,20 +56,27 @@ func (c *client) write(data []byte) (head chan<- result, tail <-chan result, err
 		return nil, nil, err
 	}
 
-	// TODO: optimize this
-	chtail := make(chan result, 1)
-	c.pending = append(c.pending, chtail)
+	// println("queue depth", len(c.pending))
+
+	// Short circuit queue depth 0
+	if len(c.pending) == 0 {
+		return nil, nil, nil
+	}
 	head = c.pending[0]
-	c.pending = c.pending[1:]
+	chtail := make(chan result, 1)
+
+	// Other queue depths
+	if len(c.pending) == 1 {
+		c.pending[0] = chtail
+	} else if len(c.pending) == 2 {
+		c.pending[0] = c.pending[1]
+		c.pending[1] = chtail
+	} else {
+		c.pending = c.pending[1:]
+		c.pending = append(c.pending, chtail)
+	}
 
 	return head, chtail, err
-}
-
-func (c *client) read(ch chan<- result) {
-	c.reading.Lock()
-	defer c.reading.Unlock()
-	data, err := c.conn.ReadDataUnit()
-	ch <- result{data, err}
 }
 
 type result struct {
