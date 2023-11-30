@@ -5,6 +5,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/domainr/epp2/errors"
 	"github.com/domainr/epp2/schema"
 	"github.com/domainr/epp2/schema/epp"
 )
@@ -71,7 +72,7 @@ func (c *client) Close() error {
 	err := c.conn.Close()
 	cerr := err
 	if cerr == nil {
-		cerr = ErrClosedConnection
+		cerr = errors.ClosedConnection
 	}
 	c.cleanup(cerr)
 	return err
