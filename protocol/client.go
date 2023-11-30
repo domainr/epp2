@@ -4,8 +4,8 @@ import (
 	"context"
 	"sync/atomic"
 
-	"github.com/domainr/epp2/errors"
-	"github.com/domainr/epp2/schema"
+	"github.com/domainr/epp2/internal/config"
+	"github.com/domainr/epp2/protocol/dataunit"
 	"github.com/domainr/epp2/schema/epp"
 )
 
@@ -29,52 +29,77 @@ type Client interface {
 }
 
 type client struct {
-	conn    Conn
-	schemas schema.Schemas
+	client dataunit.Client
+	coder  coder
 
-	// greeting stores the most recently received <greeting> from the server.
-	greeting atomic.Value
+	ctx    context.Context
+	cancel func()
 
 	// hasGreeting is closed when the client receives an initial <greeting> from the server.
 	hasGreeting chan struct{}
 
-	transactions chan transaction
+	// greeting stores the most recently received <greeting> from the server.
+	greeting atomic.Value
+
+	// err stores the first non-recoverable error on the connection.
+	err atomic.Value
 }
 
 // NewClient returns a new EPP client using conn.
 // Responses from the server will be decoded using [schemas.Schema] schemas.
 // If no schemas are provided, a set of reasonable defaults will be used.
-func NewClient(conn Conn, schemas ...schema.Schema) Client {
-	c := newClient(conn, schemas)
+func NewClient(conn dataunit.Conn, opts ...Options) Client {
+	c := newClient(conn, opts...)
 	// Read the initial <greeting> from the server.
-	go c.readEPP()
+	go func() {
+		data, err := conn.ReadDataUnit()
+		if err != nil {
+			c.err.Store(err)
+			c.cancel()
+			return
+		}
+		_, err = c.receiveDataUnit(data)
+		if err != nil {
+			c.err.Store(err)
+			c.cancel()
+			return
+		}
+	}()
 	return c
 }
 
-func newClient(conn Conn, schemas schema.Schemas) *client {
-	if len(schemas) == 0 {
-		schemas = DefaultSchemas()
+func newClient(conn dataunit.Conn, opts ...Options) *client {
+	var cfg config.Config
+	cfg.Join(opts...)
+
+	if cfg.Context == nil {
+		cfg.Context = context.Background()
 	}
+	if len(cfg.Schemas) == 0 {
+		cfg.Schemas = DefaultSchemas()
+	}
+
+	ctx, cancel := context.WithCancel(cfg.Context)
+
 	return &client{
-		conn:         conn,
-		schemas:      schemas,
-		hasGreeting:  make(chan struct{}),
-		transactions: make(chan transaction, maxConcurrentTransactions),
+		client:      dataunit.NewClient(conn),
+		coder:       coder{cfg.Schemas},
+		ctx:         ctx,
+		cancel:      cancel,
+		hasGreeting: make(chan struct{}),
 	}
 }
 
-// FIXME: make this an option
-const maxConcurrentTransactions = 16
-
 // Close closes the connection and cancels any pending commands.
 func (c *client) Close() error {
-	err := c.conn.Close()
-	cerr := err
-	if cerr == nil {
-		cerr = errors.ClosedConnection
-	}
-	c.cleanup(cerr)
-	return err
+	// err := c.conn.Close()
+	// cerr := err
+	// if cerr == nil {
+	// 	cerr = errors.ClosedConnection
+	// }
+	// c.cleanup(cerr)
+	// return err
+	return nil
 }
 
 // TODO: implement Shutdown(ctx) for graceful shutdown of a client connection?
@@ -98,6 +123,7 @@ func (c *client) Greeting(ctx context.Context) (*epp.Greeting, error) {
 // Exchange sends [epp.Body] req and returns the response from the server.
 // It blocks until a response is received, ctx is canceled, or
 // the underlying connection is closed.
+// Exchange is safe to call from multiple goroutines.
 func (c *client) Exchange(ctx context.Context, req epp.Body) (epp.Body, error) {
 	// Client MUST wait until it has received a <greeting> element from the server
 	// before sending any commands.
@@ -107,48 +133,36 @@ func (c *client) Exchange(ctx context.Context, req epp.Body) (epp.Body, error) {
 	case <-c.hasGreeting:
 	}
 
-	// Queue a new transaction.
-	tx, cancel := newTransaction(ctx)
-	defer cancel()
-	c.transactions <- tx
-
-	// Write one request to the EPP connection.
-	err := c.conn.WriteEPP(req)
+	reqData, err := c.coder.marshalXML(req)
 	if err != nil {
 		return nil, err
 	}
 
-	// Read one response off the EPP connection, which might not be a response to req.
-	res, err := c.readEPP()
-	if err != nil {
-		return nil, err
-	}
+	ch := make(chan result, 1)
 
-	// Dequeue a transaction.
+	go func() {
+		resData, err := c.client.SendDataUnit(reqData)
+		ch <- result{resData, err}
+	}()
+
 	select {
 	case <-ctx.Done():
 		return nil, ctx.Err()
-	case rtx := <-c.transactions:
-		if rtx == tx {
-			return res, nil // Short-circuit
+	case res := <-ch:
+		if res.err != nil {
+			return nil, err
 		}
-		// rtx.result is 1-buffered so this should never block.
-		// If it blocks, then there is a bug in the implementation.
-		rtx.result <- result{res, nil}
-	}
-
-	// Wait for the response to tx.
-	select {
-	case <-tx.ctx.Done():
-		return nil, tx.ctx.Err()
-	case res := <-tx.result:
-		return res.body, res.err
+		return c.receiveDataUnit(res.data)
 	}
 }
 
-func (c *client) readEPP() (epp.Body, error) {
-	// Read one reply, which may not be a reply to req.
-	body, err := c.conn.ReadEPP()
+type result struct {
+	data []byte
+	err  error
+}
+
+func (c *client) receiveDataUnit(data []byte) (epp.Body, error) {
+	body, err := c.coder.umarshalXML(data)
 	if err != nil {
 		return nil, err
 	}
@@ -174,10 +188,5 @@ func (c *client) readEPP() (epp.Body, error) {
 //
 // TODO: clean up stale or abandoned transactions on a regular basis?
 func (c *client) cleanup(err error) {
-	for tx := range c.transactions {
-		select {
-		case <-tx.ctx.Done():
-		case tx.result <- result{err: err}:
-		}
-	}
+	// TODO: set an error on c with an atomic.Value so in-flight transactions can exit gracefully.
 }
