@@ -6,13 +6,12 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/domainr/epp2/protocol"
 	"github.com/domainr/epp2/protocol/dataunit"
 	"github.com/domainr/epp2/schema/epp"
 )
 
-// Server is an EPP version 1.0 server.
-type Server struct {
+// server is an EPP version 1.0 server.
+type server struct {
 	// Name is the name of this EPP server. It is sent to clients in a EPP
 	// <greeting> message. If empty, a reasonable default will be used.
 	Name string
@@ -25,10 +24,6 @@ type Server struct {
 	// The connection will be closed when Handler returns.
 	Handler func(Session) error
 
-	// ConnContext is called for each incoming connection.
-	// If nil, context.Background() will be called.
-	ConnContext func(protocol.Conn) context.Context
-
 	inShutdown atomic.Bool
 
 	mu            sync.Mutex
@@ -36,18 +31,11 @@ type Server struct {
 	listenerGroup sync.WaitGroup
 }
 
-func (s *Server) connContext(conn protocol.Conn) context.Context {
-	if s.ConnContext != nil {
-		return s.ConnContext(conn)
-	}
-	return context.Background()
-}
-
-func (s *Server) shuttingDown() bool {
+func (s *server) shuttingDown() bool {
 	return s.inShutdown.Load()
 }
 
-func (s *Server) trackListener(l net.Listener, add bool) bool {
+func (s *server) trackListener(l net.Listener, add bool) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.listeners == nil {
@@ -69,7 +57,7 @@ func (s *Server) trackListener(l net.Listener, add bool) bool {
 // Serve accepts incoming connections on [net.Listener] l,
 // creating a new service goroutine for each connection.
 // The service goroutines read commands and then call s.Handler to reply to them.
-func (s *Server) Serve(l net.Listener) error {
+func (s *server) Serve(l net.Listener) error {
 	if !s.trackListener(l, true) {
 		return ErrServerClosed
 	}
@@ -82,24 +70,25 @@ func (s *Server) Serve(l net.Listener) error {
 			}
 			return err
 		}
-		pconn := protocol.NewConn(&dataunit.NetConn{Conn: conn}, s.Config.Schemas)
-		go s.Handle(pconn)
+		var _ = conn
+		// pconn := protocol.NewConn(&dataunit.NetConn{Conn: conn}, s.Config.Schemas)
+		// go s.Handle(pconn)
 	}
 }
 
 // Handle accepts a connection and receives and processes EPP commands.
-func (s *Server) Handle(conn protocol.Conn) error {
+func (s *server) Handle(conn dataunit.Conn) error {
 	if s.shuttingDown() {
 		return ErrServerClosed
 	}
 	session := &session{
-		ctx:  s.connContext(conn),
-		conn: conn,
+		// ctx:  s.connContext(conn),
+		// conn: conn,
 	}
 	return s.handle(session)
 }
 
-func (s *Server) handle(sess *session) error {
+func (s *server) handle(sess *session) error {
 	defer sess.Close()
 	if s.Handler == nil {
 		return nil
@@ -127,8 +116,8 @@ type Session interface {
 }
 
 type session struct {
-	ctx  context.Context
-	conn protocol.Conn
+	ctx context.Context
+	s   dataunit.Server // FIXME: this should be a protocol.Server or protocol.Session
 }
 
 var _ Session = &session{}
@@ -148,5 +137,6 @@ func (s *session) WriteResponse(r *epp.Response) error {
 }
 
 func (s *session) Close() error {
-	return s.conn.Close()
+	// return s.s.Close()
+	return nil
 }
