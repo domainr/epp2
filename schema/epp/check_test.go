@@ -10,18 +10,16 @@ import (
 )
 
 func TestCheckRoundTrip(t *testing.T) {
-	f := schema.Flatten(
-		domain.Schema,
-	)
-
 	tests := []struct {
-		name    string
-		v       any
-		want    string
-		wantErr bool
+		name     string
+		resolver schema.Resolver
+		v        any
+		want     string
+		wantErr  bool
 	}{
 		{
 			`empty <domain:check> command`,
+			domain.Schema,
 			&epp.EPP{
 				Body: &epp.Command{
 					Action: &epp.Check{
@@ -34,6 +32,7 @@ func TestCheckRoundTrip(t *testing.T) {
 		},
 		{
 			`single <domain:check> command`,
+			domain.Schema,
 			&epp.EPP{
 				Body: &epp.Command{
 					Action: &epp.Check{
@@ -49,7 +48,7 @@ func TestCheckRoundTrip(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			test.RoundTrip(t, f, tt.v, tt.want, tt.wantErr)
+			test.RoundTrip(t, tt.resolver, tt.v, tt.want, tt.wantErr)
 		})
 	}
 }

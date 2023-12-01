@@ -6,6 +6,10 @@ import (
 	"github.com/domainr/epp2/schema"
 )
 
+// NS is the IETF URN for the EPP namespace.
+// See https://www.iana.org/assignments/xml-registry/ns/epp-1.0.txt.
+const NS = "urn:ietf:params:xml:ns:epp-1.0"
+
 // Schema implements the schema.Schema interface for the the core EPP namespace.
 const Schema schemaString = "epp"
 
@@ -35,6 +39,9 @@ func (schemaString) ResolveXML(name xml.Name) any {
 		return &Command{}
 	case "response":
 		return &Response{}
+	case "extension":
+		ext := make(Extensions, 0)
+		return &ext
 
 	// CommandType
 	case "check":

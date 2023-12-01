@@ -1,10 +1,10 @@
 package ns
 
 import (
-	"github.com/domainr/epp2/schema/common"
 	"github.com/domainr/epp2/schema/contact"
 	"github.com/domainr/epp2/schema/domain"
 	"github.com/domainr/epp2/schema/epp"
+	"github.com/domainr/epp2/schema/eppcom"
 	"github.com/domainr/epp2/schema/host"
 )
 
@@ -17,7 +17,7 @@ const (
 
 	// Common is the IETF URN for the EPP common namespace.
 	// See https://www.iana.org/assignments/xml-registry/ns/eppcom-1.0.txt.
-	Common = common.NS
+	Common = eppcom.NS
 
 	// Host is the IETF URN for the EPP contact namespace.
 	// See https://www.iana.org/assignments/xml-registry/ns/contact-1.0.txt.

@@ -20,7 +20,7 @@ type Response struct {
 
 	// Extensions represents an OPTIONAL <extension> element that MAY
 	// be used for server-defined response extensions.
-	Extensions []Extension
+	Extensions Extensions `xml:"extension,omitempty"`
 
 	// TransactionID is a <trID> (transaction identifier) element that
 	// contains a CLIENT-generated transaction ID of the command and a

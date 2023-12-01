@@ -23,8 +23,8 @@ func (f ResolverFunc) ResolveXML(name xml.Name) any {
 // Flatten merges multiple [Resolver] instances together into a single Resolver. It
 // implements the Resolver interface, trying each Resolver in order from first to
 // last until one returns a non-nil value.
-func Flatten(f ...Resolver) Resolver {
-	return flatten(resolvers(f))
+func Flatten(rs ...Resolver) Resolver {
+	return flatten(rs)
 }
 
 func flatten(in resolvers) resolvers {
@@ -51,9 +51,9 @@ func flatten(in resolvers) resolvers {
 type resolvers []Resolver
 
 // ResolveXML tries each [Resolver] in order, returning the first non-nil value.
-func (slice resolvers) ResolveXML(name xml.Name) any {
-	for _, f := range slice {
-		v := f.ResolveXML(name)
+func (rs resolvers) ResolveXML(name xml.Name) any {
+	for _, r := range rs {
+		v := r.ResolveXML(name)
 		if v != nil {
 			return v
 		}

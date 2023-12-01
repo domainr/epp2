@@ -54,7 +54,7 @@ type Config struct {
 	// read from a peer.
 	UnannouncedExtensions []string
 
-	// Schemas contains the Schema objects used to map object and extension
+	// Schemas contains the list of [schema.Schema] that maps object and extension
 	// namespaces to Go types.
 	//
 	// If nil or empty, reasonable defaults will be used.
