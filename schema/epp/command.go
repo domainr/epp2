@@ -17,7 +17,7 @@ type Command struct {
 
 	// Extensions is an OPTIONAL <extension> element that MAY be used for
 	// server- defined command extensions.
-	Extensions []Extension `xml:"extension,omitempty"`
+	Extensions Extensions `xml:"extension,omitempty"`
 
 	// ClientTransactionID is an OPTIONAL <clTRID> (client transaction
 	// identifier) element that MAY be used to uniquely identify the command
