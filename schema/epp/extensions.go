@@ -26,10 +26,8 @@ func (exts *Extensions) UnmarshalXML(d *xml.Decoder, start xml.StartElement) err
 // MarshalXML impements the xml.Marshaler interface.
 func (exts *Extensions) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 	var v = struct {
-		// XMLName    xml.Name
 		Extensions []Extension `xml:",omitempty"`
 	}{
-		// XMLName:    xml.Name{Space: NS, Local: "extension"},
 		Extensions: ([]Extension)(*exts),
 	}
 	start.Name.Space = NS
