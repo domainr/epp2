@@ -40,7 +40,8 @@ func (schemaString) ResolveXML(name xml.Name) any {
 	case "response":
 		return &Response{}
 	case "extension":
-		return &Extensions{}
+		ext := make(Extensions, 0)
+		return &ext
 
 	// CommandType
 	case "check":

@@ -30,13 +30,13 @@ func TestExtensionsRoundTrip(t *testing.T) {
 		},
 		{
 			`<epp> with one <extension> sub-element`,
-			&epp.EPP{Body: &epp.Extensions{Extensions: []epp.Extension{&fooBar{}}}},
+			&epp.EPP{Body: &epp.Extensions{&fooBar{}}},
 			`<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"><extension><foo:bar xmlns:foo="urn:example:foo-1.0"></foo:bar></extension></epp>`,
 			false,
 		},
 		{
 			`<epp> with two <extension> sub-elements`,
-			&epp.EPP{Body: &epp.Extensions{Extensions: []epp.Extension{&fooBar{}, &fooBaz{}}}},
+			&epp.EPP{Body: &epp.Extensions{&fooBar{}, &fooBaz{}}},
 			`<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"><extension><foo:bar xmlns:foo="urn:example:foo-1.0"></foo:bar><foo:baz xmlns:foo="urn:example:foo-1.0"></foo:baz></extension></epp>`,
 			false,
 		},

@@ -7,10 +7,7 @@ import (
 
 // Command represents an EPP <extension> element as defined in RFC 5730.
 // See https://www.rfc-editor.org/rfc/rfc5730.html#section-2.7.1.
-type Extensions struct {
-	XMLName    struct{}    `xml:"extension"`
-	Extensions []Extension `xml:",omitempty"`
-}
+type Extensions []Extension
 
 func (*Extensions) eppBody() {}
 
@@ -20,8 +17,22 @@ func (*Extensions) eppBody() {}
 func (exts *Extensions) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 	return schema.DecodeElements(d, func(v any) error {
 		if ext, ok := v.(Extension); ok {
-			exts.Extensions = append(exts.Extensions, ext)
+			*exts = append(*exts, ext)
 		}
 		return nil
 	})
+}
+
+// MarshalXML impements the xml.Marshaler interface.
+func (exts *Extensions) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
+	var v = struct {
+		// XMLName    xml.Name
+		Extensions []Extension `xml:",omitempty"`
+	}{
+		// XMLName:    xml.Name{Space: NS, Local: "extension"},
+		Extensions: ([]Extension)(*exts),
+	}
+	start.Name.Space = NS
+	start.Name.Local = "extension"
+	return e.EncodeElement(&v, start)
 }
