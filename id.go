@@ -9,7 +9,7 @@ import (
 
 type seqSource struct {
 	prefix string
-	n      uint64
+	n      atomic.Uint64
 }
 
 func newSeqSource(prefix string) (*seqSource, error) {
@@ -27,5 +27,9 @@ func newSeqSource(prefix string) (*seqSource, error) {
 }
 
 func (s *seqSource) ID() string {
-	return s.prefix + strconv.FormatUint(atomic.AddUint64(&s.n, 1), 10)
+	return s.prefix + strconv.FormatUint(s.id(), 10)
+}
+
+func (s *seqSource) id() uint64 {
+	return s.n.Add(1)
 }
