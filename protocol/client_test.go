@@ -14,6 +14,5 @@ func TestClientConnectEOF(t *testing.T) {
 	_, _, err := protocol.Connect(clientConn)
 	if err != io.EOF {
 		t.Errorf("Connect: expected io.EOF, got %v", err)
-		return
 	}
 }
