@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/domainr/epp2/internal/xml"
+	"github.com/kr/pretty"
 
 	"github.com/domainr/epp2/schema"
 )
@@ -33,7 +34,7 @@ func RoundTrip(t *testing.T, f schema.Resolver, v any, wantXML string, wantErr b
 		return
 	}
 	if !reflect.DeepEqual(v, got) {
-		t.Errorf("Unmarshal()\nGot:  %#v\nWant: %#v", got, v)
+		t.Errorf("Unmarshal()\nGot:\n%s\nWant:\n%s", pretty.Sprint(got), pretty.Sprint(v))
 	}
 }
 
