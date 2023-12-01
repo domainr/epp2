@@ -4,7 +4,7 @@
 // in network byte order that expresses the total length of the data unit (header + payload size).
 // EPP data units are sent and received via an underlying transport (typically a TLS connection).
 //
-// See https://datatracker.ietf.org/doc/rfc4934/ for more information.
+// See https://datatracker.ietf.org/doc/rfc5734/ for more information.
 package dataunit
 
 import (

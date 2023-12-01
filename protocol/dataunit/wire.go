@@ -10,7 +10,7 @@ import (
 //
 // An EPP data unit is prefixed with 32-bit, big-endian value specifying the total size
 // of the data unit (message + 4 byte header), in network (big-endian) order.
-// See https://datatracker.ietf.org/doc/rfc4934/ for more information.
+// See https://datatracker.ietf.org/doc/rfc5734/ for more information.
 func ReadDataUnit(r io.Reader) ([]byte, error) {
 	var n uint32
 	err := binary.Read(r, binary.BigEndian, &n)
@@ -36,7 +36,7 @@ func ReadDataUnit(r io.Reader) ([]byte, error) {
 //
 // Bytes written are prefixed with 32-bit header specifying the total size
 // of the data unit (message + 4 byte header), in network (big-endian) order.
-// See https://datatracker.ietf.org/doc/rfc4934/ for more information.
+// See https://datatracker.ietf.org/doc/rfc5734/ for more information.
 func WriteDataUnit(w io.Writer, p []byte) error {
 	s := uint32(4 + len(p))
 	err := binary.Write(w, binary.BigEndian, s)
