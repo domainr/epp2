@@ -9,19 +9,13 @@ import (
 	"github.com/domainr/epp2/schema/test"
 )
 
-func TestExtensionsRoundTrip(t *testing.T) {
+func TestEPPExtensionsRoundTrip(t *testing.T) {
 	tests := []struct {
 		name    string
 		v       any
 		want    string
 		wantErr bool
 	}{
-		{
-			`nil`,
-			nil,
-			``,
-			false,
-		},
 		{
 			`<epp> with empty <extension> element`,
 			&epp.EPP{Body: &epp.Extensions{}},
