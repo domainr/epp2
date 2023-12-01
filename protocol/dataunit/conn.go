@@ -24,6 +24,12 @@ type Writer interface {
 	WriteDataUnit([]byte) error
 }
 
+type writerFunc func(data []byte) error
+
+func (f writerFunc) WriteDataUnit(data []byte) error {
+	return f(data)
+}
+
 // Conn is the interface implemented by any type that can read and write EPP data units.
 // Concurrent operations on a Conn are implementation-specific and should
 // be protected by a synchronization mechanism.

@@ -5,12 +5,10 @@ import (
 )
 
 // Server provides an ordered queue of client requests coupled with a [Writer]
-// to respond to the request. The Writer returned from ServeDataUnit can be called once.
-// Calling WriteDataUnit more than once is undefined.
+// to respond to the request.
 // Server enforces ordering of responses, writing each response in the same
 // order as the requests received from the client.
-// A Server is safe to call from multiple goroutines, and each client request
-// may be handled in a separate goroutine.
+// ServeDataUnit is safe to be called from multiple goroutines.
 type Server struct {
 	// reading protects Conn and reading
 	reading sync.Mutex
@@ -24,6 +22,11 @@ type Server struct {
 	Conn Conn
 }
 
+// ServeDataUnit reads one data unit from the client and provides a [Writer] to respond.
+// The returned Writer can only be called once. The returned Writer will always
+// be non-nil, so the caller can respond to a malformed client request.
+// ServeDataUnit is safe to be called from multiple goroutines, and each client request
+// may be handled in a separate goroutine.
 func (s *Server) ServeDataUnit() ([]byte, Writer, error) {
 	s.reading.Lock()
 	defer s.reading.Unlock()
@@ -91,10 +94,4 @@ const capMax = 32
 type transaction struct {
 	res []byte
 	err chan error
-}
-
-type writerFunc func(data []byte) error
-
-func (f writerFunc) WriteDataUnit(data []byte) error {
-	return f(data)
 }
