@@ -56,12 +56,10 @@ type pipe struct {
 
 var _ Conn = &pipe{}
 
-// ReadDataUnit reads a single EPP data unit from t, returning the payload bytes or an error.
 func (p *pipe) ReadDataUnit() ([]byte, error) {
 	return ReadDataUnit(p.R)
 }
 
-// WriteDataUnit writes a single EPP data unit to t or returns an error.
 func (p *pipe) WriteDataUnit(data []byte) error {
 	return WriteDataUnit(p.W, data)
 }
