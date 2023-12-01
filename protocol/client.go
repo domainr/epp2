@@ -82,7 +82,7 @@ func newClient(conn dataunit.Conn, opts ...Options) *client {
 	ctx, cancel := context.WithCancel(cfg.Context)
 
 	return &client{
-		client:      dataunit.NewClient(conn),
+		client:      dataunit.Client{Conn: conn},
 		coder:       coder{cfg.Schemas},
 		ctx:         ctx,
 		cancel:      cancel,
@@ -141,7 +141,7 @@ func (c *client) Exchange(ctx context.Context, req epp.Body) (epp.Body, error) {
 	ch := make(chan result, 1)
 
 	go func() {
-		resData, err := c.client.SendDataUnit(reqData)
+		resData, err := c.client.ExchangeDataUnit(reqData)
 		ch <- result{resData, err}
 	}()
 

@@ -5,37 +5,26 @@ import (
 )
 
 // Server provides an ordered queue of client requests coupled with a [Writer]
-// to respond to the request. The Writer returned from ReceiveDataUnit can be called once.
+// to respond to the request. The Writer returned from ServeDataUnit can be called once.
 // Calling WriteDataUnit more than once is undefined.
 // Server enforces ordering of responses, writing each response in the same
 // order as the requests received from the client.
 // A Server is safe to call from multiple goroutines, and each client request
 // may be handled in a separate goroutine.
-type Server interface {
-	ReceiveDataUnit() ([]byte, Writer, error)
-}
-
-type server struct {
+type Server struct {
+	// reading protects Conn and reading
 	reading sync.Mutex
 	reads   uint64
 
+	// writing protects Conn, writes, and pending
 	writing sync.Mutex
 	writes  uint64
 	pending []transaction
 
-	// Reads and writes are protected by reading and writing, respectively.
-	conn Conn
+	Conn Conn
 }
 
-func NewServer(conn Conn) Server {
-	return &server{conn: conn}
-}
-
-func (s *server) ReceiveDataUnit() ([]byte, Writer, error) {
-	return s.read()
-}
-
-func (s *server) read() ([]byte, Writer, error) {
+func (s *Server) ServeDataUnit() ([]byte, Writer, error) {
 	s.reading.Lock()
 	defer s.reading.Unlock()
 
@@ -49,11 +38,11 @@ func (s *server) read() ([]byte, Writer, error) {
 		}
 		return <-ch
 	})
-	data, err := s.conn.ReadDataUnit()
+	data, err := s.Conn.ReadDataUnit()
 	return data, f, err
 }
 
-func (s *server) respond(n uint64, data []byte) (<-chan error, error) {
+func (s *Server) respond(n uint64, data []byte) (<-chan error, error) {
 	s.writing.Lock()
 	defer s.writing.Unlock()
 
@@ -70,7 +59,7 @@ func (s *server) respond(n uint64, data []byte) (<-chan error, error) {
 	}
 
 	// Write responses
-	err := s.conn.WriteDataUnit(data)
+	err := s.Conn.WriteDataUnit(data)
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +69,7 @@ func (s *server) respond(n uint64, data []byte) (<-chan error, error) {
 		if tx.res == nil {
 			break
 		}
-		err := s.conn.WriteDataUnit(tx.res)
+		err := s.Conn.WriteDataUnit(tx.res)
 		tx.err <- err
 		if err != nil {
 			break

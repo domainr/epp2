@@ -12,9 +12,9 @@ import (
 func TestEchoClientAndServer(t *testing.T) {
 	clientConn, serverConn := Pipe()
 
-	c := NewClient(clientConn)
+	c := &Client{Conn: clientConn}
 
-	s := NewServer(serverConn)
+	s := &Server{Conn: serverConn}
 	go echoServer(t, s)
 
 	sem := make(chan struct{}, 2)
@@ -30,13 +30,13 @@ func TestEchoClientAndServer(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			time.Sleep(randDuration(10 * time.Millisecond))
-			res, err := c.SendDataUnit(req)
+			res, err := c.ExchangeDataUnit(req)
 			if err != nil {
-				t.Errorf("SendDataUnit(): err == %v", err)
+				t.Errorf("ExchangeDataUnit(): err == %v", err)
 				t.Fail()
 			}
 			if !bytes.Equal(req, res) {
-				t.Errorf("SendDataUnit(): got %s, expected %s", string(res), string(req))
+				t.Errorf("ExchangeDataUnit(): got %s, expected %s", string(res), string(req))
 				t.Fail()
 			}
 			<-sem
@@ -47,7 +47,7 @@ func TestEchoClientAndServer(t *testing.T) {
 
 // echoServer implements a rudimentary EPP data unit server that echoes
 // back each received request.
-func echoServer(t *testing.T, s Server) {
+func echoServer(t *testing.T, s *Server) {
 	sem := make(chan struct{}, 10)
 	for {
 		if t.Failed() {
@@ -56,9 +56,9 @@ func echoServer(t *testing.T, s Server) {
 		sem <- struct{}{}
 		go func() {
 			defer func() { <-sem }()
-			req, w, err := s.ReceiveDataUnit()
+			req, w, err := s.ServeDataUnit()
 			if err != nil {
-				t.Errorf("echoServer: ReceiveDataUnit(): err == %v", err)
+				t.Errorf("echoServer: ServeDataUnit(): err == %v", err)
 				t.Fail()
 			}
 			time.Sleep(randDuration(10 * time.Millisecond))
