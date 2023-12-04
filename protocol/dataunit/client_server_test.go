@@ -70,20 +70,57 @@ func TestClientContextDeadline(t *testing.T) {
 	}
 }
 
+func TestClientContextCancelled(t *testing.T) {
+	wantErr := errors.New("client context cancelled")
+	ctx, cancel := context.WithCancelCause(context.Background())
+	cancel(wantErr)
+
+	clientConn, serverConn := Pipe()
+	c := &Client{Conn: clientConn}
+	s := &Server{Conn: serverConn}
+	go echoServer(t, ctx, s)
+
+	_, err := c.ExchangeDataUnit(ctx, []byte("hello"))
+	if err != wantErr {
+		t.Errorf("ExchangeDataUnit(): err == %v, expected %v", err, wantErr)
+		t.Fail()
+	}
+}
+
+func TestServerContextCancelled(t *testing.T) {
+	ctx, cancel := context.WithCancelCause(context.Background())
+	defer cancel(errTestDone)
+
+	clientConn, serverConn := Pipe()
+	c := &Client{Conn: clientConn}
+	s := &Server{Conn: serverConn}
+
+	go c.ExchangeDataUnit(ctx, []byte("hello"))
+
+	wantErr := errors.New("server context cancelled")
+	serverCtx, cancel := context.WithCancelCause(context.Background())
+	cancel(wantErr)
+
+	err := echoServer(t, serverCtx, s)
+	if err != wantErr {
+		t.Errorf("echoServer(): err == %v, expected %v", err, wantErr)
+	}
+}
+
 // echoServer implements a rudimentary EPP data unit server that echoes
 // back each received request.
-func echoServer(t *testing.T, ctx context.Context, s *Server) {
+func echoServer(t *testing.T, ctx context.Context, s *Server) error {
+	ctx, cancel := context.WithCancelCause(ctx)
+	defer cancel(errTestDone)
+
 	sem := make(chan struct{}, 10)
 	for {
 		if t.Failed() {
-			break
+			return errTestFailed
 		}
 		err := context.Cause(ctx)
 		if err != nil {
-			if err != errTestDone {
-				t.Error(err)
-			}
-			return
+			return err
 		}
 		sem <- struct{}{}
 		go func() {
@@ -98,7 +135,6 @@ func echoServer(t *testing.T, ctx context.Context, s *Server) {
 					return
 				}
 				t.Errorf("echoServer: ServeDataUnit(): err == %v", err)
-				t.Fail()
 			}
 			time.Sleep(randDuration(10 * time.Millisecond))
 			err = w.RespondDataUnit(reqCtx, req)
@@ -107,7 +143,6 @@ func echoServer(t *testing.T, ctx context.Context, s *Server) {
 					return
 				}
 				t.Errorf("echoServer: WriteDataUnit(): err == %v", err)
-				t.Fail()
 			}
 		}()
 	}
@@ -118,3 +153,4 @@ func randDuration(max time.Duration) time.Duration {
 }
 
 var errTestDone = errors.New("test done")
+var errTestFailed = errors.New("test failed")
