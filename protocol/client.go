@@ -26,7 +26,7 @@ type client struct {
 }
 
 // Connect connects to an EPP server over conn. It waits for the initial
-// <greeting> message from the server before returning, or until ctx is cancelled
+// <greeting> message from the server before returning, ctx is cancelled,
 // or the underlying connection is closed.
 // Responses from the server will be decoded using [schema.Schema] schemas.
 // If no schemas are provided, a set of reasonable defaults will be used.
