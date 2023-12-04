@@ -20,11 +20,11 @@ func TestReadWrite(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var b bytes.Buffer
-			err := WriteDataUnit(&b, []byte(tt.data))
+			err := Write(&b, []byte(tt.data))
 			if err != nil {
 				t.Errorf("WriteDataUnit: err == %v", err)
 			}
-			res, err := ReadDataUnit(&b)
+			res, err := Read(&b)
 			if err != nil {
 				t.Errorf("ReadDataUnit: err == %v", err)
 			}

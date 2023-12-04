@@ -2,6 +2,7 @@ package dataunit
 
 import (
 	"context"
+	"io"
 	"sync"
 )
 
@@ -12,7 +13,7 @@ import (
 type Client struct {
 	writing sync.Mutex
 	reading sync.Mutex
-	Conn    Conn
+	Conn    io.ReadWriter
 
 	queueing sync.Mutex
 	queue    []chan<- result
@@ -22,20 +23,12 @@ type Client struct {
 // It blocks until a response is received, ctx is canceled, or
 // the underlying connection is closed. The supplied Context must be non-nil.
 // Exchange is safe to call from multiple goroutines.
-func (c *Client) ExchangeDataUnit(ctx context.Context, req []byte) ([]byte, error) {
-	err := context.Cause(ctx)
+func (c *Client) ExchangeDataUnit(ctx context.Context, data []byte) ([]byte, error) {
+	ch, err := c.send(ctx, data)
 	if err != nil {
 		return nil, err
 	}
-	ch := make(chan result, 1)
-	go func() {
-		err := c.write(ch, req)
-		if err != nil {
-			ch <- result{nil, err}
-			return
-		}
-		c.read()
-	}()
+	go c.receive()
 	select {
 	case <-ctx.Done():
 		return nil, context.Cause(ctx)
@@ -44,29 +37,30 @@ func (c *Client) ExchangeDataUnit(ctx context.Context, req []byte) ([]byte, erro
 	}
 }
 
-func (c *Client) write(ch chan<- result, data []byte) error {
+func (c *Client) send(ctx context.Context, data []byte) (<-chan result, error) {
 	c.writing.Lock()
 	defer c.writing.Unlock()
-	err := c.Conn.WriteDataUnit(data)
+	err := Send(ctx, c.Conn, data)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	c.enqueue(ch)
-	return nil
+	return c.enqueue(), nil
 }
 
-func (c *Client) read() {
+func (c *Client) receive() {
 	c.reading.Lock()
 	defer c.reading.Unlock()
 	ch := c.dequeue()
-	data, err := c.Conn.ReadDataUnit()
+	data, err := Read(c.Conn)
 	ch <- result{data, err}
 }
 
-func (c *Client) enqueue(ch chan<- result) {
+func (c *Client) enqueue() chan result {
 	c.queueing.Lock()
 	defer c.queueing.Unlock()
+	ch := make(chan result, 1)
 	c.queue = append(c.queue, ch)
+	return ch
 }
 
 func (c *Client) dequeue() chan<- result {

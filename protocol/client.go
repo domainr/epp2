@@ -2,6 +2,7 @@ package protocol
 
 import (
 	"context"
+	"io"
 
 	"github.com/domainr/epp2/protocol/dataunit"
 	"github.com/domainr/epp2/schema"
@@ -17,9 +18,6 @@ type Client interface {
 	// It blocks until a response is received, the Context is canceled, or
 	// the underlying connection is closed.
 	ExchangeEPP(context.Context, epp.Body) (epp.Body, error)
-
-	// Close closes the connection.
-	Close() error
 }
 
 type client struct {
@@ -32,31 +30,19 @@ type client struct {
 // or the underlying connection is closed.
 // Responses from the server will be decoded using [schemas.Schema] schemas.
 // If no schemas are provided, a set of reasonable defaults will be used.
-func Connect(ctx context.Context, conn dataunit.Conn, schemas ...schema.Schema) (Client, epp.Body, error) {
+func Connect(ctx context.Context, conn io.ReadWriter, schemas ...schema.Schema) (Client, epp.Body, error) {
 	c := newClient(conn, schemas)
 
 	// Read the initial <greeting> from the server.
-	ch := make(chan result, 1)
-	go func() {
-		data, err := conn.ReadDataUnit()
-		ch <- result{data, err}
-	}()
-
-	select {
-	case <-ctx.Done():
-		return c, nil, context.Cause(ctx)
-	case res := <-ch:
-		body, err := c.coder.umarshalXML(res.data)
-		return c, body, err
+	data, err := dataunit.Receive(ctx, conn)
+	if err != nil {
+		return c, nil, err
 	}
+	body, err := c.coder.umarshalXML(data)
+	return c, body, err
 }
 
-type result struct {
-	data []byte
-	err  error
-}
-
-func newClient(conn dataunit.Conn, schemas schema.Schemas) *client {
+func newClient(conn io.ReadWriter, schemas schema.Schemas) *client {
 	if len(schemas) == 0 {
 		schemas = DefaultSchemas()
 	}
@@ -64,11 +50,6 @@ func newClient(conn dataunit.Conn, schemas schema.Schemas) *client {
 		client: dataunit.Client{Conn: conn},
 		coder:  coder{schemas},
 	}
-}
-
-// Close closes the connection, interrupting any in-flight requests.
-func (c *client) Close() error {
-	return c.client.Conn.Close()
 }
 
 // ExchangeEPP sends [epp.Body] req and returns the response from the server.

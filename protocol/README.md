@@ -7,11 +7,11 @@ Package protocol implements low-level [EPP](https://datatracker.ietf.org/doc/rfc
 Open an EPP client connection and wait for the initial `<greeting>`:
 
 ```go
-tlsConfig := &tls.Config{ServerName: "epp.example.com"}
-tlsConn, err := tls.Dial("tcp", "epp.example.com:700", tlsConfig)
+cfg := &tls.Config{ServerName: "epp.example.com"}
+conn, err := tls.Dial("tcp", "epp.example.com:700", cfg)
 if err != nil {
 	// handle error
 }
-client, greeting, err := protocol.Connect(&dataunit.NetConn{tlsConn})
+client, greeting, err := protocol.Connect(context.Background(), conn)
 // ...
 ```

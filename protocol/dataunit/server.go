@@ -2,6 +2,7 @@ package dataunit
 
 import (
 	"context"
+	"io"
 	"sync"
 )
 
@@ -34,13 +35,13 @@ type Server struct {
 	writes  uint64
 	pending []transaction
 
-	Conn Conn
+	Conn io.ReadWriter
 }
 
 // ServeDataUnit reads one data unit from the client and provides a [Responder] to respond.
 //
-// The supplied Context must be non-nil, and governs the entire request-response cycle.
-// Therefore, cancelling ctx will cancel both reads and writes to the underlying connection.
+// The supplied Context must be non-nil, and only affects reading the request from the client.
+// Cancelling the Context after ServeDataUnit returns will have no effect on the Responder.
 //
 // The returned Responder can only be called once. The returned Responder will always
 // be non-nil, so the caller can respond to a malformed client request.
@@ -54,36 +55,24 @@ func (s *Server) ServeDataUnit(ctx context.Context) ([]byte, Responder, error) {
 	n := s.reads
 	s.reads += 1
 
-	f := responderFunc(func(responseCtx context.Context, data []byte) error {
-		ch, err := s.respond(n, data)
+	f := responderFunc(func(ctx context.Context, data []byte) error {
+		ch, err := s.respond(ctx, n, data)
 		if ch == nil {
 			return err
 		}
 		select {
 		case <-ctx.Done():
 			return context.Cause(ctx)
-		case <-responseCtx.Done():
-			return context.Cause(responseCtx)
 		case err = <-ch:
 			return err
 		}
 	})
 
-	ch := make(chan result, 1)
-	go func() {
-		data, err := s.Conn.ReadDataUnit()
-		ch <- result{data, err}
-	}()
-
-	select {
-	case <-ctx.Done():
-		return nil, f, context.Cause(ctx)
-	case res := <-ch:
-		return res.data, f, res.err
-	}
+	data, err := Receive(ctx, s.Conn)
+	return data, f, err
 }
 
-func (s *Server) respond(n uint64, data []byte) (<-chan error, error) {
+func (s *Server) respond(ctx context.Context, n uint64, data []byte) (<-chan error, error) {
 	s.writing.Lock()
 	defer s.writing.Unlock()
 
@@ -100,7 +89,7 @@ func (s *Server) respond(n uint64, data []byte) (<-chan error, error) {
 	}
 
 	// Write responses
-	err := s.Conn.WriteDataUnit(data)
+	err := Send(ctx, s.Conn, data)
 	if err != nil {
 		return nil, err
 	}
@@ -110,7 +99,7 @@ func (s *Server) respond(n uint64, data []byte) (<-chan error, error) {
 		if tx.res == nil {
 			break
 		}
-		err := s.Conn.WriteDataUnit(tx.res)
+		err := Send(ctx, s.Conn, tx.res)
 		tx.err <- err
 		if err != nil {
 			break

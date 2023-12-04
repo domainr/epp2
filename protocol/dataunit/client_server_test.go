@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"math/rand"
+	"net"
 	"strconv"
 	"sync"
 	"testing"
@@ -15,7 +16,7 @@ func TestEchoClientAndServer(t *testing.T) {
 	ctx, cancel := context.WithCancelCause(context.Background())
 	defer cancel(errTestDone)
 
-	clientConn, serverConn := Pipe()
+	clientConn, serverConn := net.Pipe()
 	c := &Client{Conn: clientConn}
 	s := &Server{Conn: serverConn}
 	go echoServer(t, ctx, s)
@@ -54,7 +55,7 @@ func TestClientContextDeadline(t *testing.T) {
 	ctx, cancel := context.WithCancelCause(context.Background())
 	defer cancel(errTestDone)
 
-	clientConn, serverConn := Pipe()
+	clientConn, serverConn := net.Pipe()
 	c := &Client{Conn: clientConn}
 	s := &Server{Conn: serverConn}
 	go echoServer(t, ctx, s)
@@ -75,7 +76,7 @@ func TestClientContextCancelled(t *testing.T) {
 	ctx, cancel := context.WithCancelCause(context.Background())
 	cancel(wantErr)
 
-	clientConn, serverConn := Pipe()
+	clientConn, serverConn := net.Pipe()
 	c := &Client{Conn: clientConn}
 	s := &Server{Conn: serverConn}
 	go echoServer(t, ctx, s)
@@ -91,7 +92,7 @@ func TestServerContextCancelled(t *testing.T) {
 	ctx, cancel := context.WithCancelCause(context.Background())
 	defer cancel(errTestDone)
 
-	clientConn, serverConn := Pipe()
+	clientConn, serverConn := net.Pipe()
 	c := &Client{Conn: clientConn}
 	s := &Server{Conn: serverConn}
 
