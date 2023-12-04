@@ -28,18 +28,32 @@ type client struct {
 }
 
 // Connect connects to an EPP server over conn. It waits for the initial
-// <greeting> message from the server before returning.
+// <greeting> message from the server before returning, or until ctx is cancelled
+// or the underlying connection is closed.
 // Responses from the server will be decoded using [schemas.Schema] schemas.
 // If no schemas are provided, a set of reasonable defaults will be used.
-func Connect(conn dataunit.Conn, schemas ...schema.Schema) (Client, epp.Body, error) {
+func Connect(ctx context.Context, conn dataunit.Conn, schemas ...schema.Schema) (Client, epp.Body, error) {
 	c := newClient(conn, schemas)
+
 	// Read the initial <greeting> from the server.
-	data, err := conn.ReadDataUnit()
-	if err != nil {
-		return c, nil, err
+	ch := make(chan result, 1)
+	go func() {
+		data, err := conn.ReadDataUnit()
+		ch <- result{data, err}
+	}()
+
+	select {
+	case <-ctx.Done():
+		return c, nil, context.Cause(ctx)
+	case res := <-ch:
+		body, err := c.coder.umarshalXML(res.data)
+		return c, body, err
 	}
-	body, err := c.coder.umarshalXML(data)
-	return c, body, err
+}
+
+type result struct {
+	data []byte
+	err  error
 }
 
 func newClient(conn dataunit.Conn, schemas schema.Schemas) *client {

@@ -1,6 +1,7 @@
 package protocol_test
 
 import (
+	"context"
 	"io"
 	"testing"
 
@@ -11,7 +12,7 @@ import (
 func TestClientConnectEOF(t *testing.T) {
 	clientConn, serverConn := dataunit.Pipe()
 	serverConn.Close()
-	_, _, err := protocol.Connect(clientConn)
+	_, _, err := protocol.Connect(context.Background(), clientConn)
 	if err != io.EOF {
 		t.Errorf("Connect: expected io.EOF, got %v", err)
 	}
