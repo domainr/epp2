@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"net"
+	"slices"
 	"time"
 
 	"github.com/domainr/epp2/internal"
@@ -17,22 +18,54 @@ type Options interface {
 // Config is an optimized form of EPP options,
 // suitable for passing via the call stack.
 type Config struct {
-	Context   context.Context
-	KeepAlive time.Duration
-	Timeout   time.Duration
+	Context context.Context
+
+	// Network options
 	Dialer    ContextDialer
 	TLSConfig *tls.Config
+	KeepAlive time.Duration
+	Timeout   time.Duration
 	Pipeline  int
-	Schemas   schema.Schemas
+
+	// EPP options
+	Versions              []string
+	Objects               []string
+	Extensions            []string
+	UnannouncedExtensions []string
+	Schemas               schema.Schemas
 }
 
 func (*Config) EPPOptions(internal.Internal) {}
+
+// Clone returns a 1-level deep clone of cfg.
+// Slice members and tls.Config will be cloned.
+func (cfg *Config) Clone() *Config {
+	return &Config{
+		Context: cfg.Context,
+
+		// Network options
+		Dialer:    cfg.Dialer,
+		TLSConfig: cfg.TLSConfig.Clone(),
+		KeepAlive: cfg.KeepAlive,
+		Timeout:   cfg.Timeout,
+		Pipeline:  cfg.Pipeline,
+
+		// EPP options
+		Versions:              slices.Clone(cfg.Versions),
+		Objects:               slices.Clone(cfg.Objects),
+		Extensions:            slices.Clone(cfg.Extensions),
+		UnannouncedExtensions: slices.Clone(cfg.UnannouncedExtensions),
+		Schemas:               slices.Clone(cfg.Schemas),
+	}
+}
 
 func (cfg *Config) Join(opts ...Options) {
 	for _, src := range opts {
 		switch src := src.(type) {
 		case nil:
 			continue
+		case *Config:
+			*cfg = *(src.Clone())
 		case Context:
 			cfg.Context = src.Context
 		case KeepAlive:
