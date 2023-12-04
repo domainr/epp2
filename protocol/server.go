@@ -25,7 +25,11 @@ func (f responderFunc) RespondEPP(ctx context.Context, body epp.Body) error {
 // [RFC 5730]: https://datatracker.ietf.org/doc/rfc5730/
 type Server interface {
 	// ServeEPP provides an client EPP request and a mechanism to respond to the request.
-	// It blocks until a response is received or the underlying connection is closed.
+	// It blocks until a response is received, Context is canceled, or the underlying connection is closed.
+	//
+	// The supplied Context must be non-nil, and governs the entire request-response cycle.
+	// Therefore, cancelling ctx will cancel both reads and writes to the underlying connection.
+	//
 	// The returned [Responder] should only be used once. The returned Responder will always
 	// be non-nil, so the caller can respond to a malformed client request.
 	ServeEPP(context.Context) (epp.Body, Responder, error)
