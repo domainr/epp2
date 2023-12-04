@@ -5,8 +5,8 @@ import (
 
 	"github.com/domainr/epp2/ns"
 	"github.com/domainr/epp2/schema/epp"
+	"github.com/domainr/epp2/schema/schematest"
 	"github.com/domainr/epp2/schema/std"
-	"github.com/domainr/epp2/schema/test"
 )
 
 func TestLoginRoundTrip(t *testing.T) {
@@ -116,7 +116,7 @@ func TestLoginRoundTrip(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			test.RoundTrip(t, nil, tt.v, tt.want, tt.wantErr)
+			schematest.RoundTrip(t, nil, tt.v, tt.want, tt.wantErr)
 		})
 	}
 }

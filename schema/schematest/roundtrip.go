@@ -1,4 +1,4 @@
-package test
+package schematest
 
 import (
 	"bytes"
