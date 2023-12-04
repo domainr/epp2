@@ -16,9 +16,7 @@ func TestEchoClientAndServer(t *testing.T) {
 	defer cancel(errTestDone)
 
 	clientConn, serverConn := Pipe()
-
 	c := &Client{Conn: clientConn}
-
 	s := &Server{Conn: serverConn}
 	go echoServer(t, ctx, s)
 
@@ -57,17 +55,13 @@ func TestClientContextDeadline(t *testing.T) {
 	defer cancel(errTestDone)
 
 	clientConn, serverConn := Pipe()
-
 	c := &Client{Conn: clientConn}
-
 	s := &Server{Conn: serverConn}
 	go echoServer(t, ctx, s)
 
 	wantErr := errors.New("test deadline exceeded")
-	ctx, cancel2 := context.WithDeadlineCause(ctx, time.Now().Add(10*time.Microsecond), wantErr)
+	ctx, cancel2 := context.WithDeadlineCause(ctx, time.Now(), wantErr)
 	defer cancel2()
-
-	time.Sleep(11 * time.Microsecond)
 
 	_, err := c.ExchangeDataUnit(ctx, []byte("hello"))
 	if err != wantErr {
