@@ -38,7 +38,7 @@ type Server struct {
 }
 
 // ServeDataUnit reads one data unit from the client and provides a [Responder] to respond.
-// The returned Writer can only be called once. The returned Responder will always
+// The returned Responder can only be called once. The returned Responder will always
 // be non-nil, so the caller can respond to a malformed client request.
 // ServeDataUnit is safe to be called from multiple goroutines, and each client request
 // may be handled in a separate goroutine.
