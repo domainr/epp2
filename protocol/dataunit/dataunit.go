@@ -4,7 +4,11 @@
 // in network byte order that expresses the total length of the data unit (header + payload size).
 // EPP data units are sent and received via an underlying transport (typically a TLS connection).
 //
-// See https://datatracker.ietf.org/doc/rfc5734/ for more information.
+// See [RFC 5730] (Extensible Provisioning Protocol) and
+// [RFC 5734] (EPP Transport over TCP) for more information.
+//
+// [RFC 5730]: https://datatracker.ietf.org/doc/rfc5730/
+// [RFC 5734]: https://datatracker.ietf.org/doc/rfc5734/
 package dataunit
 
 import (
@@ -19,6 +23,7 @@ import (
 // It will block until a data unit is read, ctx is cancelled, or r is closed.
 // The supplied Context must be non-nil.
 // Concurrent calls to Receive must be protected by a synchronization mechanism.
+//
 // See [Read] for additional information.
 func Receive(ctx context.Context, r io.Reader) ([]byte, error) {
 	err := context.Cause(ctx)
@@ -43,8 +48,6 @@ func Receive(ctx context.Context, r io.Reader) ([]byte, error) {
 //
 // An EPP data unit is prefixed with 32-bit, big-endian value specifying the total size
 // of the data unit (message + 4 byte header), in network (big-endian) order.
-//
-// See https://datatracker.ietf.org/doc/rfc5734/ for more information.
 func Read(r io.Reader) ([]byte, error) {
 	var n uint32
 	err := binary.Read(r, binary.BigEndian, &n)
@@ -70,6 +73,7 @@ func Read(r io.Reader) ([]byte, error) {
 // It will block until a data unit is written, ctx is cancelled, or w is closed.
 // The supplied Context must be non-nil.
 // Concurrent calls to Send must be protected by a synchronization mechanism.
+//
 // See [Write] for additional information.
 func Send(ctx context.Context, w io.Writer, data []byte) error {
 	err := context.Cause(ctx)
@@ -92,8 +96,6 @@ func Send(ctx context.Context, w io.Writer, data []byte) error {
 //
 // Bytes written are prefixed with 32-bit header specifying the total size
 // of the data unit (message + 4 byte header), in network (big-endian) order.
-//
-// See https://datatracker.ietf.org/doc/rfc5734/ for more information.
 func Write(w io.Writer, data []byte) error {
 	s := uint32(4 + len(data))
 	err := binary.Write(w, binary.BigEndian, s)

@@ -11,6 +11,10 @@ import (
 
 // Responder is the interface implemented by any type that can respond to a client request with an EPP message body.
 type Responder interface {
+	// RespondEPP writes an EPP response to the client. It blocks until the message is written,
+	// Context is cancelled, or the underlying connection is closed.
+	//
+	// RespondEPP can be called from an arbriary goroutine, but must only be called once.
 	RespondEPP(context.Context, epp.Body) error
 }
 
@@ -20,8 +24,8 @@ func (f responderFunc) RespondEPP(ctx context.Context, body epp.Body) error {
 	return f(ctx, body)
 }
 
-// Server is a low-level server for the Extensible Provisioning Protocol (EPP)
-// as defined in [RFC 5730]. A Server is safe to use from multiple goroutines.
+// Server represents a a low-level EPP server connection, as defined in [RFC 5730].
+// A Server is safe to use from multiple goroutines.
 //
 // [RFC 5730]: https://datatracker.ietf.org/doc/rfc5730/
 type Server interface {
@@ -41,11 +45,12 @@ type server struct {
 	coder  coder
 }
 
-// Serve services conn as an EPP server, sending greeting as the initial <greeting>
-// message to the client. The supplied Context will be used only for sending
-// the initial greeting. Cancelling ctx after Serve returns will have no effect on the
-// resulting connection.
-// EPP requests from the client will be decoded using [schemas.Schema] schemas.
+// Serve services conn as an EPP server, sending the initial <greeting> to the client.
+//
+// The supplied Context will be used only for sending the initial greeting.
+// Cancelling ctx after Serve returns will have no effect on the resulting connection.
+//
+// EPP requests from the client will be decoded using [schema.Schema] schemas.
 // If no schemas are provided, a set of reasonable defaults will be used.
 func Serve(ctx context.Context, conn io.ReadWriter, greeting epp.Body, schemas ...schema.Schema) (Server, error) {
 	s := newServer(conn, schemas)

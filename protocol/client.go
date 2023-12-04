@@ -9,8 +9,8 @@ import (
 	"github.com/domainr/epp2/schema/epp"
 )
 
-// Client is a low-level client for the Extensible Provisioning Protocol (EPP)
-// as defined in [RFC 5730]. A Client is safe to use from multiple goroutines.
+// Client represents a low-level EPP client as defined in [RFC 5730].
+// A Client is safe to use from multiple goroutines.
 //
 // [RFC 5730]: https://datatracker.ietf.org/doc/rfc5730/
 type Client interface {
@@ -28,7 +28,7 @@ type client struct {
 // Connect connects to an EPP server over conn. It waits for the initial
 // <greeting> message from the server before returning, or until ctx is cancelled
 // or the underlying connection is closed.
-// Responses from the server will be decoded using [schemas.Schema] schemas.
+// Responses from the server will be decoded using [schema.Schema] schemas.
 // If no schemas are provided, a set of reasonable defaults will be used.
 func Connect(ctx context.Context, conn io.ReadWriter, schemas ...schema.Schema) (Client, epp.Body, error) {
 	c := newClient(conn, schemas)
