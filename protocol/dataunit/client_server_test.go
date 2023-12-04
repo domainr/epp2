@@ -2,6 +2,7 @@ package dataunit
 
 import (
 	"bytes"
+	"context"
 	"math/rand"
 	"strconv"
 	"sync"
@@ -10,6 +11,9 @@ import (
 )
 
 func TestEchoClientAndServer(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	clientConn, serverConn := Pipe()
 
 	c := &Client{Conn: clientConn}
@@ -30,7 +34,7 @@ func TestEchoClientAndServer(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			time.Sleep(randDuration(10 * time.Millisecond))
-			res, err := c.ExchangeDataUnit(req)
+			res, err := c.ExchangeDataUnit(ctx, req)
 			if err != nil {
 				t.Errorf("ExchangeDataUnit(): err == %v", err)
 				t.Fail()

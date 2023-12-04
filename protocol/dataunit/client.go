@@ -1,12 +1,13 @@
 package dataunit
 
 import (
+	"context"
 	"sync"
 )
 
 // Client provides an ordered queue of client requests on a data unit connection.
-// Each call to ExchangeDataUnit will block until the peer responds or the underlying connection is closed.
-// Requests will be processed in strict FIFO order.
+// Each call to ExchangeDataUnit will block until the peer responds, the Context is canceled,
+// or the underlying connection is closed. Requests will be processed in strict FIFO order.
 // A Client is safe to call from multiple goroutines.
 type Client struct {
 	writing sync.Mutex
@@ -14,25 +15,43 @@ type Client struct {
 	Conn    Conn
 
 	queueing sync.Mutex
-	queue    []chan result
+	queue    []chan<- result
 }
 
-func (c *Client) ExchangeDataUnit(data []byte) ([]byte, error) {
-	ch, err := c.write(data)
-	if err != nil {
-		return nil, err
+// ExchangeDataUnit sends data unit req and returns the response from the server.
+// It blocks until a response is received, ctx is canceled, or
+// the underlying connection is closed. The supplied Context must be non-nil.
+// Exchange is safe to call from multiple goroutines.
+func (c *Client) ExchangeDataUnit(ctx context.Context, req []byte) ([]byte, error) {
+	if ctx.Err() != nil {
+		return nil, ctx.Err()
 	}
-	c.read()
-	res := <-ch
-	return res.data, res.err
+	ch := make(chan result, 1)
+	go func() {
+		err := c.write(ch, req)
+		if err != nil {
+			ch <- result{nil, err}
+			return
+		}
+		c.read()
+	}()
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	case res := <-ch:
+		return res.data, res.err
+	}
 }
 
-func (c *Client) write(data []byte) (<-chan result, error) {
+func (c *Client) write(ch chan<- result, data []byte) error {
 	c.writing.Lock()
 	defer c.writing.Unlock()
-	ch := c.enqueue()
 	err := c.Conn.WriteDataUnit(data)
-	return ch, err
+	if err != nil {
+		return err
+	}
+	c.enqueue(ch)
+	return nil
 }
 
 func (c *Client) read() {
@@ -43,12 +62,10 @@ func (c *Client) read() {
 	ch <- result{data, err}
 }
 
-func (c *Client) enqueue() <-chan result {
+func (c *Client) enqueue(ch chan<- result) {
 	c.queueing.Lock()
 	defer c.queueing.Unlock()
-	ch := make(chan result, 1)
 	c.queue = append(c.queue, ch)
-	return ch
 }
 
 func (c *Client) dequeue() chan<- result {
