@@ -40,6 +40,8 @@ type Server struct {
 // ServeDataUnit reads one data unit from the client and provides a [Responder] to respond.
 // The returned Responder can only be called once. The returned Responder will always
 // be non-nil, so the caller can respond to a malformed client request.
+// The supplied Context must be non-nil, and governs the entire request-response cycle,
+// therefore cancelling ctx will cancel both reads and writes to the underlying connection.
 // ServeDataUnit is safe to be called from multiple goroutines, and each client request
 // may be handled in a separate goroutine.
 func (s *Server) ServeDataUnit(ctx context.Context) ([]byte, Responder, error) {
@@ -49,7 +51,7 @@ func (s *Server) ServeDataUnit(ctx context.Context) ([]byte, Responder, error) {
 	n := s.reads
 	s.reads += 1
 
-	f := responderFunc(func(ctx context.Context, data []byte) error {
+	f := responderFunc(func(responseCtx context.Context, data []byte) error {
 		ch, err := s.respond(n, data)
 		if ch == nil {
 			return err
@@ -57,6 +59,8 @@ func (s *Server) ServeDataUnit(ctx context.Context) ([]byte, Responder, error) {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
+		case <-responseCtx.Done():
+			return responseCtx.Err()
 		case err = <-ch:
 			return err
 		}
