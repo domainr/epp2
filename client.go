@@ -17,7 +17,7 @@ type Client interface {
 }
 
 type client struct {
-	net.Conn
+	conn     net.Conn
 	client   protocol.Client
 	greeting epp.Body
 }
@@ -68,7 +68,7 @@ func connect(conn net.Conn, cfg config.Config) (Client, error) {
 	}
 
 	return &client{
-		Conn:     conn,
+		conn:     conn,
 		client:   c,
 		greeting: greeting,
 	}, nil
@@ -76,5 +76,5 @@ func connect(conn net.Conn, cfg config.Config) (Client, error) {
 
 func (c *client) Close() error {
 	// TODO: handle pending transactions
-	return c.Conn.Close()
+	return c.conn.Close()
 }
