@@ -52,6 +52,9 @@ func TestEchoClientAndServer(t *testing.T) {
 // echoServer implements a rudimentary EPP data unit server that echoes
 // back each received request.
 func echoServer(t *testing.T, s *Server) {
+	serverCtx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	sem := make(chan struct{}, 10)
 	for {
 		if t.Failed() {
@@ -60,13 +63,17 @@ func echoServer(t *testing.T, s *Server) {
 		sem <- struct{}{}
 		go func() {
 			defer func() { <-sem }()
-			req, w, err := s.ServeDataUnit()
+
+			reqCtx, cancel := context.WithCancel(serverCtx)
+			defer cancel()
+
+			req, w, err := s.ServeDataUnit(reqCtx)
 			if err != nil {
 				t.Errorf("echoServer: ServeDataUnit(): err == %v", err)
 				t.Fail()
 			}
 			time.Sleep(randDuration(10 * time.Millisecond))
-			err = w.WriteDataUnit(req)
+			err = w.RespondDataUnit(reqCtx, req)
 			if err != nil {
 				t.Errorf("echoServer: WriteDataUnit(): err == %v", err)
 				t.Fail()

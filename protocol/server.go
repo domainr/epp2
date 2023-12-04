@@ -1,20 +1,22 @@
 package protocol
 
 import (
+	"context"
+
 	"github.com/domainr/epp2/protocol/dataunit"
 	"github.com/domainr/epp2/schema"
 	"github.com/domainr/epp2/schema/epp"
 )
 
-// Writer is the interface implemented by any type that can write an EPP message body.
-type Writer interface {
-	WriteEPP(epp.Body) error
+// Responder is the interface implemented by any type that can respond to a client request with an EPP message body.
+type Responder interface {
+	RespondEPP(context.Context, epp.Body) error
 }
 
-type writerFunc func(body epp.Body) error
+type responderFunc func(context.Context, epp.Body) error
 
-func (f writerFunc) WriteEPP(body epp.Body) error {
-	return f(body)
+func (f responderFunc) RespondEPP(ctx context.Context, body epp.Body) error {
+	return f(ctx, body)
 }
 
 // Server is a low-level server for the Extensible Provisioning Protocol (EPP)
@@ -24,9 +26,9 @@ func (f writerFunc) WriteEPP(body epp.Body) error {
 type Server interface {
 	// ServeEPP provides an client EPP request and a mechanism to respond to the request.
 	// It blocks until a response is received or the underlying connection is closed.
-	// The returned [Writer] should only be used once. The returned Writer will always
+	// The returned [Responder] should only be used once. The returned Responder will always
 	// be non-nil, so the caller can respond to a malformed client request.
-	ServeEPP() (epp.Body, Writer, error)
+	ServeEPP(context.Context) (epp.Body, Responder, error)
 
 	// Close closes the connection.
 	Close() error
@@ -66,14 +68,14 @@ func (s *server) Close() error {
 	return s.server.Conn.Close()
 }
 
-func (s *server) ServeEPP() (epp.Body, Writer, error) {
-	data, w, err := s.server.ServeDataUnit()
-	f := writerFunc(func(body epp.Body) error {
+func (s *server) ServeEPP(ctx context.Context) (epp.Body, Responder, error) {
+	data, r, err := s.server.ServeDataUnit(ctx)
+	f := responderFunc(func(ctx context.Context, body epp.Body) error {
 		data, err := s.coder.marshalXML(body)
 		if err != nil {
 			return err
 		}
-		return w.WriteDataUnit(data)
+		return r.RespondDataUnit(ctx, data)
 	})
 	if err != nil {
 		return nil, f, err
