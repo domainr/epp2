@@ -3,23 +3,25 @@ package dataunit
 import (
 	"bytes"
 	"context"
+	"errors"
 	"math/rand"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 )
 
 func TestEchoClientAndServer(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := &testContext{Context: context.Background()}
+	defer ctx.TestDone()
 
 	clientConn, serverConn := Pipe()
 
 	c := &Client{Conn: clientConn}
 
 	s := &Server{Conn: serverConn}
-	go echoServer(t, s)
+	go echoServer(t, ctx, s)
 
 	sem := make(chan struct{}, 2)
 	var wg sync.WaitGroup
@@ -33,6 +35,8 @@ func TestEchoClientAndServer(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
+			ctx, cancel := context.WithCancel(ctx)
+			defer cancel()
 			time.Sleep(randDuration(10 * time.Millisecond))
 			res, err := c.ExchangeDataUnit(ctx, req)
 			if err != nil {
@@ -51,20 +55,24 @@ func TestEchoClientAndServer(t *testing.T) {
 
 // echoServer implements a rudimentary EPP data unit server that echoes
 // back each received request.
-func echoServer(t *testing.T, s *Server) {
-	serverCtx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
+func echoServer(t *testing.T, ctx context.Context, s *Server) {
 	sem := make(chan struct{}, 10)
 	for {
 		if t.Failed() {
+			break
+		}
+		err := ctx.Err()
+		if err != nil {
+			if err != errTestDone {
+				t.Error(err)
+			}
 			break
 		}
 		sem <- struct{}{}
 		go func() {
 			defer func() { <-sem }()
 
-			reqCtx, cancel := context.WithCancel(serverCtx)
+			reqCtx, cancel := context.WithCancel(ctx)
 			defer cancel()
 
 			req, w, err := s.ServeDataUnit(reqCtx)
@@ -85,3 +93,22 @@ func echoServer(t *testing.T, s *Server) {
 func randDuration(max time.Duration) time.Duration {
 	return time.Duration(rand.Int63n(int64(max)))
 }
+
+type testContext struct {
+	context.Context
+	err atomic.Value
+}
+
+func (ctx *testContext) TestDone() {
+	ctx.err.Store(errTestDone)
+}
+
+func (ctx *testContext) Err() error {
+	err := ctx.err.Load()
+	if err != nil {
+		return err.(error)
+	}
+	return ctx.Context.Err()
+}
+
+var errTestDone = errors.New("test done")
