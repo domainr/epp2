@@ -1,6 +1,8 @@
 package protocol
 
 import (
+	"context"
+
 	"github.com/domainr/epp2/protocol/dataunit"
 	"github.com/domainr/epp2/schema"
 	"github.com/domainr/epp2/schema/epp"
@@ -12,9 +14,9 @@ import (
 // [RFC 5730]: https://datatracker.ietf.org/doc/rfc5730/
 type Client interface {
 	// ExchangeEPP sends an EPP message and returns an EPP response.
-	// It blocks until a response is received, ctx is canceled, or
+	// It blocks until a response is received, the Context is canceled, or
 	// the underlying connection is closed.
-	ExchangeEPP(epp.Body) (epp.Body, error)
+	ExchangeEPP(context.Context, epp.Body) (epp.Body, error)
 
 	// Close closes the connection.
 	Close() error
@@ -59,12 +61,12 @@ func (c *client) Close() error {
 // It blocks until a response is received, ctx is canceled, or
 // the underlying connection is closed.
 // Exchange is safe to call from multiple goroutines.
-func (c *client) ExchangeEPP(req epp.Body) (epp.Body, error) {
+func (c *client) ExchangeEPP(ctx context.Context, req epp.Body) (epp.Body, error) {
 	data, err := c.coder.marshalXML(req)
 	if err != nil {
 		return nil, err
 	}
-	data, err = c.client.ExchangeDataUnit(data)
+	data, err = c.client.ExchangeDataUnit(ctx, data)
 	if err != nil {
 		return nil, err
 	}
