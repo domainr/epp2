@@ -23,8 +23,9 @@ type Client struct {
 // the underlying connection is closed. The supplied Context must be non-nil.
 // Exchange is safe to call from multiple goroutines.
 func (c *Client) ExchangeDataUnit(ctx context.Context, req []byte) ([]byte, error) {
-	if ctx.Err() != nil {
-		return nil, ctx.Err()
+	err := context.Cause(ctx)
+	if err != nil {
+		return nil, err
 	}
 	ch := make(chan result, 1)
 	go func() {
@@ -37,7 +38,7 @@ func (c *Client) ExchangeDataUnit(ctx context.Context, req []byte) ([]byte, erro
 	}()
 	select {
 	case <-ctx.Done():
-		return nil, ctx.Err()
+		return nil, context.Cause(ctx)
 	case res := <-ch:
 		return res.data, res.err
 	}

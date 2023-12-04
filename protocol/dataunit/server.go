@@ -61,9 +61,9 @@ func (s *Server) ServeDataUnit(ctx context.Context) ([]byte, Responder, error) {
 		}
 		select {
 		case <-ctx.Done():
-			return ctx.Err()
+			return context.Cause(ctx)
 		case <-responseCtx.Done():
-			return responseCtx.Err()
+			return context.Cause(responseCtx)
 		case err = <-ch:
 			return err
 		}
@@ -77,7 +77,7 @@ func (s *Server) ServeDataUnit(ctx context.Context) ([]byte, Responder, error) {
 
 	select {
 	case <-ctx.Done():
-		return nil, f, ctx.Err()
+		return nil, f, context.Cause(ctx)
 	case res := <-ch:
 		return res.data, f, res.err
 	}
