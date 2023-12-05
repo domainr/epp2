@@ -3,7 +3,9 @@ package dataunit
 import (
 	"context"
 	"io"
+	"strconv"
 	"sync"
+	"sync/atomic"
 )
 
 // Responder is the interface implemented by any type that can respond to a data unit request.
@@ -18,6 +20,17 @@ type responderFunc func(context.Context, []byte) error
 
 func (f responderFunc) RespondDataUnit(ctx context.Context, data []byte) error {
 	return f(ctx, data)
+}
+
+// MultipleResponseError is returned when a [Responder] is called more than once.
+type MultipleResponseError struct {
+	Index uint64
+	Count uint64
+}
+
+func (err MultipleResponseError) Error() string {
+	return "epp: multiple responses to request " + strconv.FormatUint(err.Index, 10) +
+		": " + strconv.FormatUint(err.Count, 10) + " > 1"
 }
 
 // Server provides an ordered queue of client requests coupled with a [Responder]
@@ -55,7 +68,13 @@ func (s *Server) ServeDataUnit(ctx context.Context) ([]byte, Responder, error) {
 	n := s.reads
 	s.reads += 1
 
+	var counter atomic.Uint64
+
 	f := responderFunc(func(ctx context.Context, data []byte) error {
+		count := counter.Add(1)
+		if count != 1 {
+			return MultipleResponseError{Index: n, Count: count}
+		}
 		ch, err := s.respond(ctx, n, data)
 		if ch == nil {
 			return err

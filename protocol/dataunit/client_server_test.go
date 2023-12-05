@@ -39,11 +39,9 @@ func TestEchoClientAndServer(t *testing.T) {
 			res, err := c.ExchangeDataUnit(ctx, req)
 			if err != nil {
 				t.Errorf("ExchangeDataUnit(): err == %v", err)
-				t.Fail()
 			}
 			if !bytes.Equal(req, res) {
 				t.Errorf("ExchangeDataUnit(): got %s, expected %s", string(res), string(req))
-				t.Fail()
 			}
 			<-sem
 		}()
@@ -105,6 +103,31 @@ func TestServerContextCancelled(t *testing.T) {
 	err := echoServer(t, serverCtx, s)
 	if err != wantErr {
 		t.Errorf("echoServer(): err == %v, expected %v", err, wantErr)
+	}
+}
+
+func TestMultipleResponseError(t *testing.T) {
+	ctx, cancel := context.WithCancelCause(context.Background())
+	defer cancel(errTestDone)
+
+	clientConn, serverConn := net.Pipe()
+	c := &Client{Conn: clientConn}
+	s := &Server{Conn: serverConn}
+
+	go c.ExchangeDataUnit(ctx, []byte("hello"))
+
+	req, w, err := s.ServeDataUnit(ctx)
+	if err != nil {
+		t.Errorf("ExchangeDataUnit(): err == %v", err)
+	}
+	err = w.RespondDataUnit(ctx, req)
+	if err != nil {
+		t.Errorf("RespondDataUnit(): err == %v", err)
+	}
+	err = w.RespondDataUnit(ctx, req)
+	wantErr := MultipleResponseError{Index: 0, Count: 2}
+	if err != wantErr {
+		t.Errorf("RespondDataUnit(): err == %v, expected %v", err, wantErr)
 	}
 }
 
