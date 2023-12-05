@@ -14,7 +14,8 @@ type Responder interface {
 	// RespondEPP writes an EPP response to the client. It blocks until the message is written,
 	// Context is canceled, or the underlying connection is closed.
 	//
-	// RespondEPP can be called from an arbriary goroutine, but must only be called once.
+	// RespondEPP can be called from an any goroutine, but must only be called once.
+	// It will return an error if called more than once.
 	RespondEPP(context.Context, epp.Body) error
 }
 
