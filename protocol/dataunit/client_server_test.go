@@ -116,15 +116,15 @@ func TestMultipleResponseError(t *testing.T) {
 
 	go c.ExchangeDataUnit(ctx, []byte("hello"))
 
-	req, w, err := s.ServeDataUnit(ctx)
+	req, r, err := s.ServeDataUnit(ctx)
 	if err != nil {
 		t.Errorf("ExchangeDataUnit(): err == %v", err)
 	}
-	err = w.RespondDataUnit(ctx, req)
+	err = r.RespondDataUnit(ctx, req)
 	if err != nil {
 		t.Errorf("RespondDataUnit(): err == %v", err)
 	}
-	err = w.RespondDataUnit(ctx, req)
+	err = r.RespondDataUnit(ctx, req)
 	wantErr := MultipleResponseError{Index: 0, Count: 2}
 	if err != wantErr {
 		t.Errorf("RespondDataUnit(): err == %v, expected %v", err, wantErr)
@@ -153,7 +153,7 @@ func echoServer(t *testing.T, ctx context.Context, s *Server) error {
 			reqCtx, cancel := context.WithCancel(ctx)
 			defer cancel()
 
-			req, w, err := s.ServeDataUnit(reqCtx)
+			req, r, err := s.ServeDataUnit(reqCtx)
 			if err != nil {
 				if err == errTestDone {
 					return
@@ -161,7 +161,7 @@ func echoServer(t *testing.T, ctx context.Context, s *Server) error {
 				t.Errorf("echoServer: ServeDataUnit(): err == %v", err)
 			}
 			time.Sleep(randDuration(10 * time.Millisecond))
-			err = w.RespondDataUnit(reqCtx, req)
+			err = r.RespondDataUnit(reqCtx, req)
 			if err != nil {
 				if err == errTestDone {
 					return
