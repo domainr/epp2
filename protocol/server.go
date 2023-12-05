@@ -55,7 +55,7 @@ type server struct {
 func Serve(ctx context.Context, conn io.ReadWriter, greeting epp.Body, schemas ...schema.Schema) (Server, error) {
 	s := newServer(conn, schemas)
 	// Send the initial <greeting> to the client.
-	data, err := s.coder.marshalXML(greeting)
+	data, err := s.coder.marshal(greeting)
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +75,7 @@ func newServer(conn io.ReadWriter, schemas schema.Schemas) *server {
 func (s *server) ServeEPP(ctx context.Context) (epp.Body, Responder, error) {
 	data, r, err := s.server.ServeDataUnit(ctx)
 	f := responderFunc(func(ctx context.Context, body epp.Body) error {
-		data, err := s.coder.marshalXML(body)
+		data, err := s.coder.marshal(body)
 		if err != nil {
 			return err
 		}
@@ -84,6 +84,6 @@ func (s *server) ServeEPP(ctx context.Context) (epp.Body, Responder, error) {
 	if err != nil {
 		return nil, f, err
 	}
-	body, err := s.coder.umarshalXML(data)
+	body, err := s.coder.unmarshal(data)
 	return body, f, err
 }

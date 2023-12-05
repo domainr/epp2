@@ -41,7 +41,7 @@ func Connect(ctx context.Context, conn io.ReadWriter, schemas ...schema.Schema) 
 	if err != nil {
 		return c, nil, err
 	}
-	body, err := c.coder.umarshalXML(data)
+	body, err := c.coder.unmarshal(data)
 	return c, body, err
 }
 
@@ -60,7 +60,7 @@ func newClient(conn io.ReadWriter, schemas schema.Schemas) *client {
 // the underlying connection is closed.
 // Exchange is safe to call from multiple goroutines.
 func (c *client) ExchangeEPP(ctx context.Context, req epp.Body) (epp.Body, error) {
-	data, err := c.coder.marshalXML(req)
+	data, err := c.coder.marshal(req)
 	if err != nil {
 		return nil, err
 	}
@@ -68,5 +68,5 @@ func (c *client) ExchangeEPP(ctx context.Context, req epp.Body) (epp.Body, error
 	if err != nil {
 		return nil, err
 	}
-	return c.coder.umarshalXML(data)
+	return c.coder.unmarshal(data)
 }
