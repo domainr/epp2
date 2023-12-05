@@ -29,7 +29,7 @@ func (f responderFunc) RespondEPP(ctx context.Context, body epp.Body) error {
 //
 // [RFC 5730]: https://datatracker.ietf.org/doc/rfc5730/
 type Server interface {
-	// ServeEPP provides an EPP request and a mechanism to respond to the request.
+	// ServeEPP returns an EPP request from the client and a Responder used to respond to the request.
 	// It blocks until a response is received, Context is canceled, or the underlying connection is closed.
 	//
 	// The supplied Context must be non-nil, and only affects reading the request from the client.

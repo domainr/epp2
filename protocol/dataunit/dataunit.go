@@ -20,7 +20,7 @@ import (
 // Receive receives a single EPP data unit from [io.Reader] r, returning the payload or an error.
 // If the EPP data unit read has zero-length, Receive will return (nil, nil).
 //
-// It will block until a data unit is read, ctx is canceled, or r is closed.
+// It will block until a data unit is read, the Context is canceled, or the underlying connection is closed.
 // The supplied Context must be non-nil.
 // Concurrent calls to Receive must be protected by a synchronization mechanism.
 //
@@ -70,7 +70,9 @@ func Read(r io.Reader) ([]byte, error) {
 }
 
 // Send sends a single EPP data unit to [io.Writer] w.
-// It will block until a data unit is written, ctx is canceled, or w is closed.
+// It will block until a data unit is written, the Context is canceled,
+// or the underlying connection is closed.
+//
 // The supplied Context must be non-nil.
 // Concurrent calls to Send must be protected by a synchronization mechanism.
 //

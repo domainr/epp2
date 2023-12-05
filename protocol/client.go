@@ -26,7 +26,7 @@ type client struct {
 }
 
 // Connect connects to an EPP server over conn. It blocks until the initial
-// <greeting> message is received, ctx is canceled, or the underlying connection is closed.
+// <greeting> message is received, the Context is canceled, or the underlying connection is closed.
 //
 // The supplied Context must be non-nil, and only affects reading the initial <greeting> from the client.
 // Canceling ctx expires after Connect returns does not affect the resulting Client.
@@ -56,7 +56,7 @@ func newClient(conn io.ReadWriter, schemas schema.Schemas) *client {
 }
 
 // ExchangeEPP sends [epp.Body] req and returns the response from the server.
-// It blocks until a response is received, ctx is canceled, or
+// It blocks until a response is received, the Context is canceled, or
 // the underlying connection is closed.
 // Exchange is safe to call from multiple goroutines.
 func (c *client) ExchangeEPP(ctx context.Context, req epp.Body) (epp.Body, error) {
