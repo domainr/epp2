@@ -72,7 +72,7 @@ func TestClientContextDeadline(t *testing.T) {
 }
 
 func TestClientContextCancelled(t *testing.T) {
-	wantErr := errors.New("client context cancelled")
+	wantErr := errors.New("client context canceled")
 	ctx, cancel := context.WithCancelCause(context.Background())
 	cancel(wantErr)
 
@@ -98,7 +98,7 @@ func TestServerContextCancelled(t *testing.T) {
 
 	go c.ExchangeDataUnit(ctx, []byte("hello"))
 
-	wantErr := errors.New("server context cancelled")
+	wantErr := errors.New("server context canceled")
 	serverCtx, cancel := context.WithCancelCause(context.Background())
 	cancel(wantErr)
 

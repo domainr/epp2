@@ -25,9 +25,11 @@ type client struct {
 	coder  coder
 }
 
-// Connect connects to an EPP server over conn. It waits for the initial
-// <greeting> message from the server before returning, ctx is cancelled,
-// or the underlying connection is closed.
+// Connect connects to an EPP server over conn. It blocks until the initial
+// <greeting> message is received, ctx is canceled, or the underlying connection is closed.
+//
+// The supplied Context must be non-nil, and only affects reading the initial <greeting> from the client.
+// Canceling ctx expires after Connect returns does not affect the resulting Client.
 //
 // Responses from the server will be decoded using [schema.Schema] schemas.
 // If no schemas are provided, a set of reasonable defaults will be used.

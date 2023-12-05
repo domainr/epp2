@@ -12,7 +12,7 @@ import (
 // Responder is the interface implemented by any type that can respond to a client request with an EPP message body.
 type Responder interface {
 	// RespondEPP writes an EPP response to the client. It blocks until the message is written,
-	// Context is cancelled, or the underlying connection is closed.
+	// Context is canceled, or the underlying connection is closed.
 	//
 	// RespondEPP can be called from an arbriary goroutine, but must only be called once.
 	RespondEPP(context.Context, epp.Body) error
