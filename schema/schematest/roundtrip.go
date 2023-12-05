@@ -1,4 +1,4 @@
-package test
+package schematest
 
 import (
 	"bytes"
@@ -6,9 +6,8 @@ import (
 	"testing"
 
 	"github.com/domainr/epp2/internal/xml"
-	"github.com/kr/pretty"
-
 	"github.com/domainr/epp2/schema"
+	"github.com/kr/pretty"
 )
 
 // RoundTrip validates if v marshals to want or wantErr (if set),

@@ -1,10 +1,39 @@
 package dataunit
 
 import (
+	"context"
+	"io"
+	"strconv"
 	"sync"
+	"sync/atomic"
 )
 
-// Server provides an ordered queue of client requests coupled with a [Writer]
+// Responder is the interface implemented by any type that can respond to a data unit request.
+type Responder interface {
+	// RespondDataUnit will attempt to write data to the underlying connection.
+	// It blocks until the data unit is successfully written, Context is canceled,
+	// or the underlying connection is closed. The supplied Context must be non-nil.
+	RespondDataUnit(context.Context, []byte) error
+}
+
+type responderFunc func(context.Context, []byte) error
+
+func (f responderFunc) RespondDataUnit(ctx context.Context, data []byte) error {
+	return f(ctx, data)
+}
+
+// MultipleResponseError is returned when a [Responder] is called more than once.
+type MultipleResponseError struct {
+	Index uint64
+	Count uint64
+}
+
+func (err MultipleResponseError) Error() string {
+	return "epp: multiple responses to request " + strconv.FormatUint(err.Index, 10) +
+		": " + strconv.FormatUint(err.Count, 10) + " > 1"
+}
+
+// Server provides an ordered queue of client requests coupled with a [Responder]
 // to respond to the request.
 // Server enforces ordering of responses, writing each response in the same
 // order as the requests received from the client.
@@ -19,33 +48,50 @@ type Server struct {
 	writes  uint64
 	pending []transaction
 
-	Conn Conn
+	Conn io.ReadWriter
 }
 
-// ServeDataUnit reads one data unit from the client and provides a [Writer] to respond.
-// The returned Writer can only be called once. The returned Writer will always
+// ServeDataUnit reads one data unit from the client and provides a [Responder] to respond.
+//
+// The supplied Context must be non-nil, and only affects reading the request from the client.
+// Cancelling the Context after ServeDataUnit returns will have no effect on the Responder.
+//
+// The returned Responder can only be called once. The returned Responder will always
 // be non-nil, so the caller can respond to a malformed client request.
+//
 // ServeDataUnit is safe to be called from multiple goroutines, and each client request
 // may be handled in a separate goroutine.
-func (s *Server) ServeDataUnit() ([]byte, Writer, error) {
+func (s *Server) ServeDataUnit(ctx context.Context) ([]byte, Responder, error) {
 	s.reading.Lock()
 	defer s.reading.Unlock()
 
 	n := s.reads
 	s.reads += 1
 
-	f := writerFunc(func(data []byte) error {
-		ch, err := s.respond(n, data)
+	var counter atomic.Uint64
+
+	f := responderFunc(func(ctx context.Context, data []byte) error {
+		count := counter.Add(1)
+		if count != 1 {
+			return MultipleResponseError{Index: n, Count: count}
+		}
+		ch, err := s.respond(ctx, n, data)
 		if ch == nil {
 			return err
 		}
-		return <-ch
+		select {
+		case <-ctx.Done():
+			return context.Cause(ctx)
+		case err = <-ch:
+			return err
+		}
 	})
-	data, err := s.Conn.ReadDataUnit()
+
+	data, err := Receive(ctx, s.Conn)
 	return data, f, err
 }
 
-func (s *Server) respond(n uint64, data []byte) (<-chan error, error) {
+func (s *Server) respond(ctx context.Context, n uint64, data []byte) (<-chan error, error) {
 	s.writing.Lock()
 	defer s.writing.Unlock()
 
@@ -62,7 +108,7 @@ func (s *Server) respond(n uint64, data []byte) (<-chan error, error) {
 	}
 
 	// Write responses
-	err := s.Conn.WriteDataUnit(data)
+	err := Send(ctx, s.Conn, data)
 	if err != nil {
 		return nil, err
 	}
@@ -72,7 +118,7 @@ func (s *Server) respond(n uint64, data []byte) (<-chan error, error) {
 		if tx.res == nil {
 			break
 		}
-		err := s.Conn.WriteDataUnit(tx.res)
+		err := Send(ctx, s.Conn, tx.res)
 		tx.err <- err
 		if err != nil {
 			break

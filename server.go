@@ -77,7 +77,7 @@ func (s *server) Serve(l net.Listener) error {
 }
 
 // Handle accepts a connection and receives and processes EPP commands.
-func (s *server) Handle(conn dataunit.Conn) error {
+func (s *server) Handle(conn net.Conn) error {
 	if s.shuttingDown() {
 		return ErrServerClosed
 	}

@@ -6,7 +6,7 @@ import (
 	"github.com/domainr/epp2/internal/xml"
 	"github.com/domainr/epp2/schema"
 	"github.com/domainr/epp2/schema/epp"
-	"github.com/domainr/epp2/schema/test"
+	"github.com/domainr/epp2/schema/schematest"
 )
 
 func TestEPPExtensionsRoundTrip(t *testing.T) {
@@ -37,7 +37,7 @@ func TestEPPExtensionsRoundTrip(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			test.RoundTrip(t, fooSchema, tt.v, tt.want, tt.wantErr)
+			schematest.RoundTrip(t, fooSchema, tt.v, tt.want, tt.wantErr)
 		})
 	}
 }

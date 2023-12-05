@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/domainr/epp2/schema/epp"
-	"github.com/domainr/epp2/schema/test"
+	"github.com/domainr/epp2/schema/schematest"
 )
 
 func TestEPPRoundTrip(t *testing.T) {
@@ -47,7 +47,7 @@ func TestEPPRoundTrip(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			test.RoundTrip(t, nil, tt.v, tt.want, tt.wantErr)
+			schematest.RoundTrip(t, nil, tt.v, tt.want, tt.wantErr)
 		})
 	}
 }

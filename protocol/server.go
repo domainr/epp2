@@ -1,35 +1,44 @@
 package protocol
 
 import (
+	"context"
+	"io"
+
 	"github.com/domainr/epp2/protocol/dataunit"
 	"github.com/domainr/epp2/schema"
 	"github.com/domainr/epp2/schema/epp"
 )
 
-// Writer is the interface implemented by any type that can write an EPP message body.
-type Writer interface {
-	WriteEPP(epp.Body) error
+// Responder is the interface implemented by any type that can respond to a client request with an EPP message body.
+type Responder interface {
+	// RespondEPP writes an EPP response to the client. It blocks until the message is written,
+	// Context is canceled, or the underlying connection is closed.
+	//
+	// RespondEPP can be called from an any goroutine, but must only be called once.
+	// It will return an error if called more than once.
+	RespondEPP(context.Context, epp.Body) error
 }
 
-type writerFunc func(body epp.Body) error
+type responderFunc func(context.Context, epp.Body) error
 
-func (f writerFunc) WriteEPP(body epp.Body) error {
-	return f(body)
+func (f responderFunc) RespondEPP(ctx context.Context, body epp.Body) error {
+	return f(ctx, body)
 }
 
-// Server is a low-level server for the Extensible Provisioning Protocol (EPP)
-// as defined in [RFC 5730]. A Server is safe to use from multiple goroutines.
+// Server represents a a low-level EPP server connection, as defined in [RFC 5730].
+// A Server is safe to use from multiple goroutines.
 //
 // [RFC 5730]: https://datatracker.ietf.org/doc/rfc5730/
 type Server interface {
-	// ServeEPP provides an client EPP request and a mechanism to respond to the request.
-	// It blocks until a response is received or the underlying connection is closed.
-	// The returned [Writer] should only be used once. The returned Writer will always
+	// ServeEPP returns an EPP request from the client and a Responder used to respond to the request.
+	// It blocks until a response is received, Context is canceled, or the underlying connection is closed.
+	//
+	// The supplied Context must be non-nil, and only affects reading the request from the client.
+	// Cancelling the Context after ServeEPP returns will have no effect on the Responder.
+	//
+	// The returned [Responder] should only be used once. The returned Responder will always
 	// be non-nil, so the caller can respond to a malformed client request.
-	ServeEPP() (epp.Body, Writer, error)
-
-	// Close closes the connection.
-	Close() error
+	ServeEPP(context.Context) (epp.Body, Responder, error)
 }
 
 type server struct {
@@ -37,21 +46,24 @@ type server struct {
 	coder  coder
 }
 
-// Serve services conn as an EPP server, sending greeting as the initial <greeting>
-// message to the client.
-// EPP requests from the client will be decoded using [schemas.Schema] schemas.
+// Serve services conn as an EPP server, sending the initial <greeting> to the client.
+//
+// The supplied Context will be used only for sending the initial greeting.
+// Cancelling ctx after Serve returns will have no effect on the resulting connection.
+//
+// EPP requests from the client will be decoded using [schema.Schema] schemas.
 // If no schemas are provided, a set of reasonable defaults will be used.
-func Serve(conn dataunit.Conn, greeting epp.Body, schemas ...schema.Schema) (Server, error) {
+func Serve(ctx context.Context, conn io.ReadWriter, greeting epp.Body, schemas ...schema.Schema) (Server, error) {
 	s := newServer(conn, schemas)
 	// Send the initial <greeting> to the client.
-	data, err := s.coder.marshalXML(greeting)
+	data, err := s.coder.marshal(greeting)
 	if err != nil {
 		return nil, err
 	}
-	return s, conn.WriteDataUnit(data)
+	return s, dataunit.Send(ctx, conn, data)
 }
 
-func newServer(conn dataunit.Conn, schemas schema.Schemas) *server {
+func newServer(conn io.ReadWriter, schemas schema.Schemas) *server {
 	if len(schemas) == 0 {
 		schemas = DefaultSchemas()
 	}
@@ -61,23 +73,18 @@ func newServer(conn dataunit.Conn, schemas schema.Schemas) *server {
 	}
 }
 
-// Close closes the connection, interrupting any in-flight requests.
-func (s *server) Close() error {
-	return s.server.Conn.Close()
-}
-
-func (s *server) ServeEPP() (epp.Body, Writer, error) {
-	data, w, err := s.server.ServeDataUnit()
-	f := writerFunc(func(body epp.Body) error {
-		data, err := s.coder.marshalXML(body)
+func (s *server) ServeEPP(ctx context.Context) (epp.Body, Responder, error) {
+	data, r, err := s.server.ServeDataUnit(ctx)
+	f := responderFunc(func(ctx context.Context, body epp.Body) error {
+		data, err := s.coder.marshal(body)
 		if err != nil {
 			return err
 		}
-		return w.WriteDataUnit(data)
+		return r.RespondDataUnit(ctx, data)
 	})
 	if err != nil {
 		return nil, f, err
 	}
-	body, err := s.coder.umarshalXML(data)
+	body, err := s.coder.unmarshal(data)
 	return body, f, err
 }

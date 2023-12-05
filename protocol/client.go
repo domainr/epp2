@@ -1,23 +1,23 @@
 package protocol
 
 import (
+	"context"
+	"io"
+
 	"github.com/domainr/epp2/protocol/dataunit"
 	"github.com/domainr/epp2/schema"
 	"github.com/domainr/epp2/schema/epp"
 )
 
-// Client is a low-level client for the Extensible Provisioning Protocol (EPP)
-// as defined in [RFC 5730]. A Client is safe to use from multiple goroutines.
+// Client represents a low-level EPP client as defined in [RFC 5730].
+// A Client is safe to use from multiple goroutines.
 //
 // [RFC 5730]: https://datatracker.ietf.org/doc/rfc5730/
 type Client interface {
 	// ExchangeEPP sends an EPP message and returns an EPP response.
-	// It blocks until a response is received, ctx is canceled, or
+	// It blocks until a response is received, the Context is canceled, or
 	// the underlying connection is closed.
-	ExchangeEPP(epp.Body) (epp.Body, error)
-
-	// Close closes the connection.
-	Close() error
+	ExchangeEPP(context.Context, epp.Body) (epp.Body, error)
 }
 
 type client struct {
@@ -25,22 +25,27 @@ type client struct {
 	coder  coder
 }
 
-// Connect connects to an EPP server over conn. It waits for the initial
-// <greeting> message from the server before returning.
-// Responses from the server will be decoded using [schemas.Schema] schemas.
+// Connect connects to an EPP server over conn. It blocks until the initial
+// <greeting> message is received, the Context is canceled, or the underlying connection is closed.
+//
+// The supplied Context must be non-nil, and only affects reading the initial <greeting> from the client.
+// Canceling ctx expires after Connect returns does not affect the resulting Client.
+//
+// Responses from the server will be decoded using [schema.Schema] schemas.
 // If no schemas are provided, a set of reasonable defaults will be used.
-func Connect(conn dataunit.Conn, schemas ...schema.Schema) (Client, epp.Body, error) {
+func Connect(ctx context.Context, conn io.ReadWriter, schemas ...schema.Schema) (Client, epp.Body, error) {
 	c := newClient(conn, schemas)
+
 	// Read the initial <greeting> from the server.
-	data, err := conn.ReadDataUnit()
+	data, err := dataunit.Receive(ctx, conn)
 	if err != nil {
 		return c, nil, err
 	}
-	body, err := c.coder.umarshalXML(data)
+	body, err := c.coder.unmarshal(data)
 	return c, body, err
 }
 
-func newClient(conn dataunit.Conn, schemas schema.Schemas) *client {
+func newClient(conn io.ReadWriter, schemas schema.Schemas) *client {
 	if len(schemas) == 0 {
 		schemas = DefaultSchemas()
 	}
@@ -50,23 +55,18 @@ func newClient(conn dataunit.Conn, schemas schema.Schemas) *client {
 	}
 }
 
-// Close closes the connection, interrupting any in-flight requests.
-func (c *client) Close() error {
-	return c.client.Conn.Close()
-}
-
 // ExchangeEPP sends [epp.Body] req and returns the response from the server.
-// It blocks until a response is received, ctx is canceled, or
+// It blocks until a response is received, the Context is canceled, or
 // the underlying connection is closed.
 // Exchange is safe to call from multiple goroutines.
-func (c *client) ExchangeEPP(req epp.Body) (epp.Body, error) {
-	data, err := c.coder.marshalXML(req)
+func (c *client) ExchangeEPP(ctx context.Context, req epp.Body) (epp.Body, error) {
+	data, err := c.coder.marshal(req)
 	if err != nil {
 		return nil, err
 	}
-	data, err = c.client.ExchangeDataUnit(data)
+	data, err = c.client.ExchangeDataUnit(ctx, data)
 	if err != nil {
 		return nil, err
 	}
-	return c.coder.umarshalXML(data)
+	return c.coder.unmarshal(data)
 }
