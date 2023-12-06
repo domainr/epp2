@@ -7,15 +7,26 @@ import (
 )
 
 // Access represents an EPP server’s scope of data access as defined in RFC 5730.
-type Access string
+type Access access
 
 const (
-	AccessNull             Access = "null"
-	AccessNone             Access = "none"
-	AccessPersonal         Access = "personal"
-	AccessOther            Access = "other"
-	AccessPersonalAndOther Access = "personalAndOther"
-	AccessAll              Access = "all"
+	AccessNull             Access = accessNull
+	AccessNone             Access = accessNone
+	AccessPersonal         Access = accessPersonal
+	AccessOther            Access = accessOther
+	AccessPersonalAndOther Access = accessPersonalAndOther
+	AccessAll              Access = accessAll
+)
+
+type access string
+
+const (
+	accessNull             = "null"
+	accessNone             = "none"
+	accessPersonal         = "personal"
+	accessOther            = "other"
+	accessPersonalAndOther = "personalAndOther"
+	accessAll              = "all"
 )
 
 func parseAccess(s string) Access {
@@ -26,7 +37,11 @@ func parseAccess(s string) Access {
 	return ""
 }
 
-// MarshalXML impements the xml.Marshaler interface.
+func (a Access) String() string {
+	return string(a)
+}
+
+// MarshalXML impements the [xml.Marshaler] interface.
 func (a Access) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 	type T struct {
 		XMLName xml.Name `xml:",selfclosing"`
@@ -40,7 +55,7 @@ func (a Access) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 	return e.EncodeElement(&v, start)
 }
 
-// UnmarshalXML implements the xml.Unmarshaler interface.
+// UnmarshalXML implements the [xml.Unmarshaler] interface.
 func (a *Access) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 	return schema.DecodeElements(d, func(v any) error {
 		if e, ok := v.(*schema.Any); ok && e.XMLName.Space == NS {

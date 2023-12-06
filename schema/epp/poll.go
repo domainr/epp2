@@ -7,4 +7,4 @@ type Poll struct {
 	// TODO: finish this.
 }
 
-func (Poll) eppAction() {}
+func (Poll) EPPAction() string { return "poll" }
