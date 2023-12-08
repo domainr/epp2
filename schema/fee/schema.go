@@ -55,28 +55,28 @@ type Create Transform[epp.Create]
 
 type CreateData struct {
 	XMLName struct{} `xml:"urn:ietf:params:xml:ns:epp:fee-1.0 fee:creData"`
-	TransformResult[any]
+	TransformData[any]
 }
 
 type Renew Transform[epp.Renew]
 
 type RenewData struct {
 	XMLName struct{} `xml:"urn:ietf:params:xml:ns:epp:fee-1.0 fee:renData"`
-	TransformResult[any]
+	TransformData[any]
 }
 
 type Transfer Transform[epp.Transfer]
 
 type TransferData struct {
 	XMLName struct{} `xml:"urn:ietf:params:xml:ns:epp:fee-1.0 fee:trnData"`
-	TransformResult[any]
+	TransformData[any]
 }
 
 type Update Transform[epp.Update]
 
 type UpdateData struct {
 	XMLName struct{} `xml:"urn:ietf:params:xml:ns:epp:fee-1.0 fee:updData"`
-	TransformResult[any]
+	TransformData[any]
 }
 
 type Transform[A epp.Action] struct{}
@@ -90,9 +90,6 @@ func (t *Transform[A]) MarshalXML(e *xml.Encoder, start xml.StartElement) error 
 	return e.EncodeElement((*T)(t), schema.Rename(start, NS, a.EPPAction()))
 }
 
-type TransformResult[A result] struct{}
+type TransformData[A epp.ResponseData] struct{}
 
-func (TransformResult[A]) EPPExtension() {}
-
-type result interface {
-}
+func (TransformData[A]) EPPExtension() {}
