@@ -35,7 +35,7 @@ jobs:
     timeout-minutes: 15
     strategy:
       matrix:
-        go-version: ["1.22"]
+        go-version: ["stable"]
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4.1.2
@@ -45,7 +45,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5.0.0
         with:
-          go-version: ^${{ matrix.go-version }}
+          go-version: ${{ matrix.go-version }}
           check-latest: true
 
       - name: Run Go tests
@@ -70,7 +70,7 @@ jobs:
     timeout-minutes: 15
     strategy:
       matrix:
-        version: ["0.30.0"]
+        version: ["0.31.2"]
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4.1.2
@@ -102,9 +102,9 @@ jobs:
     timeout-minutes: 15
     strategy:
       matrix:
-        go-version: ["1.22"] # WASI Preview 1 only available in Go 1.21 or later
-        tinygo-version: ["0.30.0"]
-        wasmtime-version: ["v14.0.4", "v15.0.0"]
+        go-version: ["stable"] # WASI Preview 1 only available in Go 1.21 or later
+        tinygo-version: ["0.31.2"]
+        wasmtime-version: ["latest"]
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4.1.2
@@ -114,7 +114,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5.0.0
         with:
-          go-version: ^${{ matrix.go-version }}
+          go-version: ${{ matrix.go-version }}
           check-latest: true
 
       - name: Set up TinyGo
