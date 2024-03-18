@@ -19,13 +19,19 @@ func TestEchoClientAndServer(t *testing.T) {
 	clientConn, serverConn := net.Pipe()
 	c := &Client{Conn: clientConn}
 	s := &Server{Conn: serverConn}
-	go echoServer(t, ctx, s)
+
+	var mu sync.Mutex
+	go echoServer(t, ctx, s, &mu)
 
 	sem := make(chan struct{}, 2)
 	var wg sync.WaitGroup
 
 	for i := 0; i < 100; i++ {
-		if t.Failed() {
+		mu.Lock()
+		failed := t.Failed()
+		mu.Unlock()
+
+		if failed {
 			break
 		}
 		req := []byte(strconv.FormatInt(int64(i), 10))
@@ -38,10 +44,14 @@ func TestEchoClientAndServer(t *testing.T) {
 			time.Sleep(randDuration(10 * time.Millisecond))
 			res, err := c.ExchangeDataUnit(ctx, req)
 			if err != nil {
+				mu.Lock()
 				t.Errorf("ExchangeDataUnit(): err == %v", err)
+				mu.Unlock()
 			}
 			if !bytes.Equal(req, res) {
+				mu.Lock()
 				t.Errorf("ExchangeDataUnit(): got %s, expected %s", string(res), string(req))
+				mu.Unlock()
 			}
 			<-sem
 		}()
@@ -56,7 +66,8 @@ func TestClientContextDeadline(t *testing.T) {
 	clientConn, serverConn := net.Pipe()
 	c := &Client{Conn: clientConn}
 	s := &Server{Conn: serverConn}
-	go echoServer(t, ctx, s)
+	var mu sync.Mutex
+	go echoServer(t, ctx, s, &mu)
 
 	wantErr := errors.New("test deadline exceeded")
 	ctx, cancel2 := context.WithDeadlineCause(ctx, time.Now(), wantErr)
@@ -64,8 +75,9 @@ func TestClientContextDeadline(t *testing.T) {
 
 	_, err := c.ExchangeDataUnit(ctx, []byte("hello"))
 	if err != wantErr {
+		mu.Lock()
 		t.Errorf("ExchangeDataUnit(): err == %v, expected %v", err, wantErr)
-		t.Fail()
+		mu.Unlock()
 	}
 }
 
@@ -77,12 +89,14 @@ func TestClientContextCancelled(t *testing.T) {
 	clientConn, serverConn := net.Pipe()
 	c := &Client{Conn: clientConn}
 	s := &Server{Conn: serverConn}
-	go echoServer(t, ctx, s)
+	var mu sync.Mutex
+	go echoServer(t, ctx, s, &mu)
 
 	_, err := c.ExchangeDataUnit(ctx, []byte("hello"))
 	if err != wantErr {
+		mu.Lock()
 		t.Errorf("ExchangeDataUnit(): err == %v, expected %v", err, wantErr)
-		t.Fail()
+		mu.Unlock()
 	}
 }
 
@@ -100,9 +114,12 @@ func TestServerContextCancelled(t *testing.T) {
 	serverCtx, cancel := context.WithCancelCause(context.Background())
 	cancel(wantErr)
 
-	err := echoServer(t, serverCtx, s)
+	var mu sync.Mutex
+	err := echoServer(t, serverCtx, s, &mu)
 	if err != wantErr {
+		mu.Lock()
 		t.Errorf("echoServer(): err == %v, expected %v", err, wantErr)
+		mu.Unlock()
 	}
 }
 
@@ -133,13 +150,17 @@ func TestMultipleResponseError(t *testing.T) {
 
 // echoServer implements a rudimentary EPP data unit server that echoes
 // back each received request.
-func echoServer(t *testing.T, ctx context.Context, s *Server) error {
+func echoServer(t *testing.T, ctx context.Context, s *Server, mu *sync.Mutex) error {
 	ctx, cancel := context.WithCancelCause(ctx)
 	defer cancel(errTestDone)
 
 	sem := make(chan struct{}, 10)
 	for {
-		if t.Failed() {
+		mu.Lock()
+		failed := t.Failed()
+		mu.Unlock()
+
+		if failed {
 			return errTestFailed
 		}
 		err := context.Cause(ctx)
@@ -158,7 +179,9 @@ func echoServer(t *testing.T, ctx context.Context, s *Server) error {
 				if err == errTestDone {
 					return
 				}
+				mu.Lock()
 				t.Errorf("echoServer: ServeDataUnit(): err == %v", err)
+				mu.Unlock()
 			}
 			time.Sleep(randDuration(10 * time.Millisecond))
 			err = r.RespondDataUnit(reqCtx, req)
@@ -166,7 +189,9 @@ func echoServer(t *testing.T, ctx context.Context, s *Server) error {
 				if err == errTestDone {
 					return
 				}
+				mu.Lock()
 				t.Errorf("echoServer: WriteDataUnit(): err == %v", err)
+				mu.Unlock()
 			}
 		}()
 	}
@@ -176,5 +201,7 @@ func randDuration(max time.Duration) time.Duration {
 	return time.Duration(rand.Int63n(int64(max)))
 }
 
-var errTestDone = errors.New("test done")
-var errTestFailed = errors.New("test failed")
+var (
+	errTestDone   = errors.New("test done")
+	errTestFailed = errors.New("test failed")
+)
