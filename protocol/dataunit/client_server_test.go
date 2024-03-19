@@ -191,7 +191,7 @@ func echoServer(t *testing.T, ctx context.Context, s *Server, mu *sync.Mutex) er
 					return
 				}
 				mu.Lock()
-				t.Errorf("echoServer: WriteDataUnit(): err == %v", err)
+				t.Errorf("echoServer: RespondDataUnit(): err == %v", err)
 				mu.Unlock()
 			}
 		}()
