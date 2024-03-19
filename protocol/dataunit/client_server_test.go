@@ -18,7 +18,7 @@ import (
 //
 // It does this by passing an instance of a `Server` to `echoServer()`, which
 // runs in a goroutine. The echo server runs forever or until the passed in
-// context is cancelled. Inside the echo server it checks for any context
+// context is canceled. Inside the echo server it checks for any context
 // cancellations and returns early if so (it will optionally record the error if
 // the error is not an expected type). Otherwise, it handles 10 requests at a
 // time, spinning up each request in a new goroutine. Each goroutine handles a
@@ -99,8 +99,8 @@ func TestClientContextDeadline(t *testing.T) {
 	}
 }
 
-func TestClientContextCancelled(t *testing.T) {
-	wantErr := errCtxCancelled
+func TestClientContextCanceled(t *testing.T) {
+	wantErr := errCtxCanceled
 	ctx, cancel := context.WithCancelCause(context.Background())
 	cancel(wantErr)
 
@@ -121,7 +121,7 @@ func TestClientContextCancelled(t *testing.T) {
 	}
 }
 
-func TestServerContextCancelled(t *testing.T) {
+func TestServerContextCanceled(t *testing.T) {
 	ctx, cancel := context.WithCancelCause(context.Background())
 	defer cancel(errTestDone)
 
@@ -133,7 +133,7 @@ func TestServerContextCancelled(t *testing.T) {
 		_, _ = c.ExchangeDataUnit(ctx, []byte("hello"))
 	}()
 
-	wantErr := errors.New("server context cancelled")
+	wantErr := errors.New("server context canceled")
 	serverCtx, cancel := context.WithCancelCause(context.Background())
 	cancel(wantErr)
 
@@ -185,7 +185,7 @@ func echoServer(ctx context.Context, s *Server, echoServerErr chan<- error) {
 	for {
 		err := context.Cause(ctx)
 		if err != nil {
-			if err == errTestDone || err == errCtxCancelled {
+			if err == errTestDone || err == errCtxCanceled {
 				return
 			}
 			echoServerErr <- err
@@ -224,6 +224,6 @@ func randDuration(max time.Duration) time.Duration {
 }
 
 var (
-	errCtxCancelled = errors.New("context cancelled")
-	errTestDone     = errors.New("test done")
+	errCtxCanceled = errors.New("context canceled")
+	errTestDone    = errors.New("test done")
 )
