@@ -18,12 +18,12 @@ import (
 //
 // It does this by passing an instance of a `Server` to `echoServer()`, which
 // runs in a goroutine. The echo server runs forever or until the passed in
-// context is cancelled. Inside the echo server it checks for
-// `testing.T.Failed()` and stops if there is a test failure. Otherwise, it
-// handles 10 requests at a time, spinning up each request in a new goroutine.
-// Each goroutine handles a response to the client request. Each request is
-// sending a unique 'data unit' to be processed and the response is sent back to
-// the `serverConn` which .
+// context is cancelled. Inside the echo server it checks for any context
+// cancellations and returns early if so (it will optionally record the error if
+// the error is not an expected type). Otherwise, it handles 10 requests at a
+// time, spinning up each request in a new goroutine. Each goroutine handles a
+// response to the client request. Each request is sending a unique 'data unit'
+// to be processed and the response is sent back to the `serverConn`.
 //
 // We use a `net.Pipe()` to simulate the client/server request/response flows.
 // i.e. a write to `clientConn` is readable via `serverConn` (and vice-versa).
