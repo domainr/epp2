@@ -34,7 +34,7 @@ func TestEchoClientAndServer(t *testing.T) {
 		if failed {
 			break
 		}
-		req := []byte(strconv.FormatInt(int64(i), 10))
+		data := []byte(strconv.FormatInt(int64(i), 10))
 		sem <- struct{}{}
 		wg.Add(1)
 		go func() {
@@ -42,15 +42,15 @@ func TestEchoClientAndServer(t *testing.T) {
 			ctx, cancel := context.WithCancel(ctx)
 			defer cancel()
 			time.Sleep(randDuration(10 * time.Millisecond))
-			res, err := c.ExchangeDataUnit(ctx, req)
+			res, err := c.ExchangeDataUnit(ctx, data)
 			if err != nil {
 				mu.Lock()
 				t.Errorf("ExchangeDataUnit(): err == %v", err)
 				mu.Unlock()
 			}
-			if !bytes.Equal(req, res) {
+			if !bytes.Equal(data, res) {
 				mu.Lock()
-				t.Errorf("ExchangeDataUnit(): got %s, expected %s", string(res), string(req))
+				t.Errorf("ExchangeDataUnit(): got %s, expected %s", string(res), string(data))
 				mu.Unlock()
 			}
 			<-sem
@@ -174,7 +174,7 @@ func echoServer(t *testing.T, ctx context.Context, s *Server, mu *sync.Mutex) er
 			reqCtx, cancel := context.WithCancel(ctx)
 			defer cancel()
 
-			req, r, err := s.ServeDataUnit(reqCtx)
+			data, r, err := s.ServeDataUnit(reqCtx)
 			if err != nil {
 				if err == errTestDone {
 					return
@@ -184,7 +184,7 @@ func echoServer(t *testing.T, ctx context.Context, s *Server, mu *sync.Mutex) er
 				mu.Unlock()
 			}
 			time.Sleep(randDuration(10 * time.Millisecond))
-			err = r.RespondDataUnit(reqCtx, req)
+			err = r.RespondDataUnit(reqCtx, data)
 			if err != nil {
 				if err == errTestDone {
 					return
