@@ -183,6 +183,7 @@ func echoServer(t *testing.T, ctx context.Context, s *Server, mu *sync.Mutex) er
 				t.Errorf("echoServer: ServeDataUnit(): err == %v", err)
 				mu.Unlock()
 			}
+			t.Logf("data received from client connection: %s\n", data)
 			time.Sleep(randDuration(10 * time.Millisecond))
 			err = r.RespondDataUnit(reqCtx, data)
 			if err != nil {
