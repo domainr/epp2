@@ -53,6 +53,7 @@ func TestEchoClientAndServer(t *testing.T) {
 				t.Errorf("ExchangeDataUnit(): got %s, expected %s", string(res), string(data))
 				mu.Unlock()
 			}
+			t.Logf("data received from server connection: %s\n", res)
 			<-sem
 		}()
 	}
