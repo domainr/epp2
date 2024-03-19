@@ -90,7 +90,7 @@ func TestClientContextDeadline(t *testing.T) {
 	defer cancel2()
 
 	_, err := c.ExchangeDataUnit(ctx, []byte("hello"))
-	if err != wantErr {
+	if !errors.Is(err, wantErr) {
 		echoServerErr <- fmt.Errorf("ExchangeDataUnit(): err == %w, expected %w", err, wantErr)
 	}
 	close(echoServerErr)
@@ -112,7 +112,7 @@ func TestClientContextCancelled(t *testing.T) {
 	go echoServer(ctx, s, echoServerErr)
 
 	_, err := c.ExchangeDataUnit(ctx, []byte("hello"))
-	if err != wantErr {
+	if !errors.Is(err, wantErr) {
 		echoServerErr <- fmt.Errorf("ExchangeDataUnit(): err == %w, expected %w", err, wantErr)
 	}
 	close(echoServerErr)
@@ -142,7 +142,7 @@ func TestServerContextCancelled(t *testing.T) {
 	go echoServer(serverCtx, s, echoServerErr)
 
 	for err := range echoServerErr {
-		if err != wantErr {
+		if !errors.Is(err, wantErr) {
 			t.Errorf("unexpected error: %s", err)
 		}
 	}
@@ -170,7 +170,7 @@ func TestMultipleResponseError(t *testing.T) {
 	}
 	err = r.RespondDataUnit(ctx, req)
 	wantErr := MultipleResponseError{Index: 0, Count: 2}
-	if err != wantErr {
+	if !errors.Is(err, wantErr) {
 		t.Errorf("RespondDataUnit(): err == %v, expected %v", err, wantErr)
 	}
 }
@@ -185,7 +185,7 @@ func echoServer(ctx context.Context, s *Server, echoServerErr chan<- error) {
 	for {
 		err := context.Cause(ctx)
 		if err != nil {
-			if err == errTestDone || err == errCtxCancelled {
+			if errors.Is(err, errTestDone) || errors.Is(err, errCtxCancelled) {
 				return
 			}
 			echoServerErr <- err
@@ -201,7 +201,7 @@ func echoServer(ctx context.Context, s *Server, echoServerErr chan<- error) {
 
 			data, r, err := s.ServeDataUnit(reqCtx)
 			if err != nil {
-				if err == errTestDone {
+				if errors.Is(err, errTestDone) {
 					return
 				}
 				echoServerErr <- fmt.Errorf("echoServer: ServeDataUnit(): err == %w", err)
@@ -210,7 +210,7 @@ func echoServer(ctx context.Context, s *Server, echoServerErr chan<- error) {
 			time.Sleep(randDuration(10 * time.Millisecond))
 			err = r.RespondDataUnit(reqCtx, data)
 			if err != nil {
-				if err == errTestDone {
+				if errors.Is(err, errTestDone) {
 					return
 				}
 				echoServerErr <- fmt.Errorf("echoServer: RespondDataUnit(): err == %w", err)
