@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"math/rand"
+	"math/rand/v2"
 	"net"
 	"strconv"
 	"sync"
@@ -219,7 +219,7 @@ func echoServer(ctx context.Context, t *testing.T, s *Server, mu *sync.Mutex) er
 }
 
 func randDuration(max time.Duration) time.Duration {
-	return time.Duration(rand.Int63n(int64(max)))
+	return time.Duration(rand.Int64N(int64(max)))
 }
 
 var (
