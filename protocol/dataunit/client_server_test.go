@@ -12,6 +12,25 @@ import (
 	"time"
 )
 
+// TestEchoClientAndServer validates the EPP server is able to read the data
+// provided in the client request and to respond back correctly.
+//
+// It does this by passing an instance of a `Server` to `echoServer()`, which
+// runs in a goroutine. The echo server runs forever or until the passed in
+// context is cancelled. Inside the echo server it checks for
+// `testing.T.Failed()` and stops if there is a test failure. Otherwise, it
+// handles 10 requests at a time, spinning up each request in a new goroutine.
+// Each goroutine handles a response to the client request. Each request is
+// sending a unique 'data unit' to be processed and the response is sent back to
+// the `serverConn` which .
+//
+// We use a `net.Pipe()` to simulate the client/server request/response flows.
+// i.e. a write to `clientConn` is readable via `serverConn` (and vice-versa).
+//
+// So c.ExchangeDataUnit() writes data to the `clientConn` which causes a copy
+// of the data to be written into `serverConn` for it to read. Then writing to
+// `serverConn` causes a copy of that data to be written into `clientConn` for
+// it to read. Simulating a bidirectional network connection.
 func TestEchoClientAndServer(t *testing.T) {
 	ctx, cancel := context.WithCancelCause(context.Background())
 	defer cancel(errTestDone)
