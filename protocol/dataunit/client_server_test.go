@@ -156,7 +156,9 @@ func TestMultipleResponseError(t *testing.T) {
 	c := &Client{Conn: clientConn}
 	s := &Server{Conn: serverConn}
 
-	go c.ExchangeDataUnit(ctx, []byte("hello"))
+	go func() {
+		_, _ = c.ExchangeDataUnit(ctx, []byte("hello"))
+	}()
 
 	req, r, err := s.ServeDataUnit(ctx)
 	if err != nil {
