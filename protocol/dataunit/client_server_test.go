@@ -220,7 +220,7 @@ func echoServer(ctx context.Context, s *Server, echoServerErr chan<- error) {
 }
 
 func randDuration(max time.Duration) time.Duration {
-	return time.Duration(rand.Int64N(int64(max)))
+	return time.Duration(rand.N(max))
 }
 
 var (
