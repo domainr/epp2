@@ -53,7 +53,7 @@ func TestEchoClientAndServer(t *testing.T) {
 				t.Errorf("ExchangeDataUnit(): got %s, expected %s", string(res), string(data))
 				mu.Unlock()
 			}
-			t.Logf("data received from server connection: %s\n", res)
+			// t.Logf("data received from server connection: %s\n", res)
 			<-sem
 		}()
 	}
@@ -184,7 +184,7 @@ func echoServer(t *testing.T, ctx context.Context, s *Server, mu *sync.Mutex) er
 				t.Errorf("echoServer: ServeDataUnit(): err == %v", err)
 				mu.Unlock()
 			}
-			t.Logf("data received from client connection: %s\n", data)
+			// t.Logf("data received from client connection: %s\n", data)
 			time.Sleep(randDuration(10 * time.Millisecond))
 			err = r.RespondDataUnit(reqCtx, data)
 			if err != nil {
