@@ -40,7 +40,7 @@ func TestEchoClientAndServer(t *testing.T) {
 	s := &Server{Conn: serverConn}
 
 	var mu sync.Mutex
-	go echoServer(t, ctx, s, &mu)
+	go echoServer(ctx, t, s, &mu)
 
 	sem := make(chan struct{}, 2)
 	var wg sync.WaitGroup
@@ -87,7 +87,7 @@ func TestClientContextDeadline(t *testing.T) {
 	c := &Client{Conn: clientConn}
 	s := &Server{Conn: serverConn}
 	var mu sync.Mutex
-	go echoServer(t, ctx, s, &mu)
+	go echoServer(ctx, t, s, &mu)
 
 	wantErr := errors.New("test deadline exceeded")
 	ctx, cancel2 := context.WithDeadlineCause(ctx, time.Now(), wantErr)
@@ -110,7 +110,7 @@ func TestClientContextCancelled(t *testing.T) {
 	c := &Client{Conn: clientConn}
 	s := &Server{Conn: serverConn}
 	var mu sync.Mutex
-	go echoServer(t, ctx, s, &mu)
+	go echoServer(ctx, t, s, &mu)
 
 	_, err := c.ExchangeDataUnit(ctx, []byte("hello"))
 	if err != wantErr {
@@ -135,7 +135,7 @@ func TestServerContextCancelled(t *testing.T) {
 	cancel(wantErr)
 
 	var mu sync.Mutex
-	err := echoServer(t, serverCtx, s, &mu)
+	err := echoServer(serverCtx, t, s, &mu)
 	if err != wantErr {
 		mu.Lock()
 		t.Errorf("echoServer(): err == %v, expected %v", err, wantErr)
@@ -170,7 +170,7 @@ func TestMultipleResponseError(t *testing.T) {
 
 // echoServer implements a rudimentary EPP data unit server that echoes
 // back each received request.
-func echoServer(t *testing.T, ctx context.Context, s *Server, mu *sync.Mutex) error {
+func echoServer(ctx context.Context, t *testing.T, s *Server, mu *sync.Mutex) error {
 	ctx, cancel := context.WithCancelCause(ctx)
 	defer cancel(errTestDone)
 
