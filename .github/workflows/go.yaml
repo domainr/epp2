@@ -14,7 +14,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v4.1.5
+        uses: actions/checkout@v4.1.6
         with:
           submodules: recursive
 
@@ -38,7 +38,7 @@ jobs:
         go-version: ["stable"]
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v4.1.5
+        uses: actions/checkout@v4.1.6
         with:
           submodules: recursive
 
@@ -73,7 +73,7 @@ jobs:
         version: ["0.31.2"]
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v4.1.5
+        uses: actions/checkout@v4.1.6
         with:
           submodules: recursive
 
@@ -107,7 +107,7 @@ jobs:
         wasmtime-version: ["latest"]
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v4.1.5
+        uses: actions/checkout@v4.1.6
         with:
           submodules: recursive
 
