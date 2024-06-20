@@ -7,4 +7,4 @@ type Create struct {
 	// TODO: finish this.
 }
 
-func (Create) eppAction() {}
+func (Create) EPPAction() string { return "create" }
