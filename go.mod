@@ -5,7 +5,7 @@ go 1.22.1
 require (
 	github.com/kr/pretty v0.3.1
 	github.com/nbio/xml v0.0.0-20231024184640-088fa821cad9
-	github.com/rickb777/date v1.20.7
+	github.com/rickb777/date v1.21.1
 )
 
 require (
