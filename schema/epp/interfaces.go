@@ -12,7 +12,7 @@ type Body interface {
 //
 // An Action is serialized to XML as the first child of a <command> element.
 type Action interface {
-	eppAction()
+	EPPAction() string
 }
 
 // CheckType is a child element of EPP <check>.

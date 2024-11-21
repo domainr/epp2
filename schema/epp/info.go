@@ -7,4 +7,4 @@ type Info struct {
 	// TODO: InfoType
 }
 
-func (Info) eppAction() {}
+func (Info) EPPAction() string { return "info" }

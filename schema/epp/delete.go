@@ -7,4 +7,4 @@ type Delete struct {
 	// TODO: finish this.
 }
 
-func (Delete) eppAction() {}
+func (Delete) EPPAction() string { return "delete" }

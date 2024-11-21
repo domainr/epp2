@@ -29,7 +29,7 @@ func (b *Bool) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 // An empty value, 0, or starting with a f or F is considered false.
 // Any other value is considered true.
 func (b *Bool) UnmarshalXMLAttr(attr *xml.Attr) error {
-	if len(attr.Value) == 0 || attr.Value == "1" || attr.Value[0] == 'f' || attr.Value[0] == 'F' {
+	if len(attr.Value) == 0 || attr.Value == "0" || attr.Value[0] == 'f' || attr.Value[0] == 'F' {
 		*b = false
 	} else {
 		*b = true
